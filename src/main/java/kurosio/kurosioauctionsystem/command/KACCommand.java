@@ -74,7 +74,7 @@ public class KACCommand implements CommandExecutor {
 
             long startPrice;
             long bidUnit = 1000;
-            double radius = 0;
+            double radius = 15;
 
             // =====================
             // 開始価格
