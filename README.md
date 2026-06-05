@@ -1,0 +1,2 @@
+# KurosioAuctionSystem
+Minecraftサーバー内等でオークションができるプラグイン
