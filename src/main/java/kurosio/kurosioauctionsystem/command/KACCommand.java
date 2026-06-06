@@ -205,6 +205,7 @@ public class KACCommand implements CommandExecutor {
                 ChatUtil.send(p, "&6&l[ＫＡＣオークション]");
                 ChatUtil.send(p, "&e=======================");
                 ChatUtil.send(p, "&a" + player.getName() + "&fさんがオークションを開始しました！");
+                ChatUtil.send(player, "&eID&f: &f" + auction.getAuctionId());
                 ChatUtil.send(p, "&eアイテム名&f: &f" + displayName);
                 ChatUtil.send(p, "&e開始価格&f: &6" + String.format("%,d", startPrice) + "円");
                 ChatUtil.send(p, "&e入札単位&f: &6" + String.format("%,d", bidUnit) + "円");
@@ -608,7 +609,8 @@ public class KACCommand implements CommandExecutor {
 
             Bukkit.broadcastMessage(ChatUtil.color(
                     ChatUtil.PREFIX +
-                            "&cオークションが出品者によって中止されました &7(ID:\" + auctionId + \")"
+                            "&cオークションが出品者によって中止されました &eID&f:&f" +
+                            auction.getAuctionId()
             ));
 
             return true;
