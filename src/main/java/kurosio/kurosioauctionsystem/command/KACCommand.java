@@ -202,11 +202,11 @@ public class KACCommand implements CommandExecutor {
             // =====================
             for (Player p : targets) {
 
-                ChatUtil.send(p, "&7=======================");
-                ChatUtil.send(p, "&e[KACオークション]");
+                ChatUtil.send(p, "&6&l[ＫＡＣオークション]");
+                ChatUtil.send(p, "&e=======================");
                 ChatUtil.send(p, "&a" + player.getName() + "&fさんがオークションを開始しました！");
                 ChatUtil.send(p, "&eアイテム名&f: &f" + displayName);
-                ChatUtil.send(p, "&e開始価格&f: &6" + startPrice + "円");
+                ChatUtil.send(p, "&e開始価格&f: &6" + String.format("%,d", startPrice) + "円");
                 ChatUtil.send(p, "&e入札単位&f: &6" + String.format("%,d", bidUnit) + "円");
 
                 // =====================
@@ -226,7 +226,7 @@ public class KACCommand implements CommandExecutor {
 
                 p.spigot().sendMessage(join);
 
-                ChatUtil.send(p, "&7=======================");
+                ChatUtil.send(p, "&e=======================");
             }
 
             player.sendMessage("オークションを作成しました ID:" + auctionId);
@@ -382,19 +382,65 @@ public class KACCommand implements CommandExecutor {
 
 
 
-            auction.setCurrentPrice(newPrice);
-            auction.setLastBidTime(System.currentTimeMillis());
+            boolean autoBidTriggered = false;
 
-            auction.setHighestBidder(player.getUniqueId());
+            UUID currentWinner = auction.getHighestBidder();
+            long highestOffer = auction.getHighestOfferPrice();
+
+// 自動入札者が存在する場合
+            if (currentWinner != null
+                    && manager.getAutoBid(currentWinner) != null
+                    && !currentWinner.equals(player.getUniqueId())) {
+
+                long autoLimit = manager.getAutoBid(currentWinner);
+
+                // 自動入札上限以内
+                if (newPrice <= autoLimit) {
+
+                    long autoPrice = Math.min(
+                            autoLimit,
+                            newPrice + bidUnit
+                    );
+
+                    auction.setCurrentPrice(autoPrice);
+                    auction.setHighestBidder(currentWinner);
+
+                    autoBidTriggered = true;
+
+                } else {
+
+                    // 上限突破
+                    auction.setCurrentPrice(newPrice);
+                    auction.setHighestOfferPrice(newPrice);
+                    auction.setHighestBidder(player.getUniqueId());
+                }
+
+            } else {
+
+                // 普通の入札
+                auction.setCurrentPrice(newPrice);
+                auction.setHighestOfferPrice(newPrice);
+                auction.setHighestBidder(player.getUniqueId());
+            }
+
+            auction.setLastBidTime(System.currentTimeMillis());
 
             ChatUtil.send(
                     player,
                     ChatUtil.PREFIX + "&a入札しました！ &6&l" + String.format("%,d", newPrice) + "円"
             );
 
+            long displayPrice = auction.getCurrentPrice();
+
             for (Player p : Bukkit.getOnlinePlayers()) {
+
                 p.sendMessage(ChatUtil.color(
-                        "&c現在の入札額: &6" + String.format("%,d", newPrice) + "円"
+                        "&c現在の入札額: &6" +
+                                String.format("%,d", displayPrice) +
+                                "円" +
+                                (autoBidTriggered
+                                        ? " &7（自動入札）"
+                                        : "")
                 ));
             }
 
@@ -486,6 +532,32 @@ public class KACCommand implements CommandExecutor {
 
             manager.setAutoBid(player.getUniqueId(), limit);
 
+            AuctionData auction = manager.getAuction(auctionId);
+
+            if (auction != null) {
+
+                if (limit > auction.getHighestOfferPrice()) {
+
+                    auction.setHighestOfferPrice(limit);
+                    auction.setHighestBidder(player.getUniqueId());
+                }
+            }
+
+
+            if (auction != null) {
+
+                if (auction.getHighestBidder() == null) {
+
+                    auction.setHighestBidder(player.getUniqueId());
+                    auction.setHighestOfferPrice(limit);
+
+                } else if (limit > auction.getHighestOfferPrice()) {
+
+                    auction.setHighestBidder(player.getUniqueId());
+                    auction.setHighestOfferPrice(limit);
+                }
+            }
+
             player.sendMessage(ChatUtil.color(
                     ChatUtil.PREFIX + "&a自動入札を設定しました！ &6上限:" + String.format("%,d", limit) + "円"
             ));
@@ -565,5 +637,102 @@ public class KACCommand implements CommandExecutor {
             return true;
         }
         return true;
+    }
+
+    private boolean processAutoBid(
+            AuctionManager manager,
+            AuctionData auction
+    ) {
+
+        UUID topPlayer = null;
+        long topLimit = 0;
+
+        UUID secondPlayer = null;
+        long secondLimit = 0;
+
+        // 自動入札者ランキング取得
+        for (UUID uuid : manager.getAllJoinedPlayers(
+                auction.getAuctionId()
+        )) {
+
+            Long limit = manager.getAutoBid(uuid);
+
+            if (limit == null) {
+                continue;
+            }
+
+            if (limit > topLimit) {
+
+                secondLimit = topLimit;
+                secondPlayer = topPlayer;
+
+                topLimit = limit;
+                topPlayer = uuid;
+
+            } else if (limit > secondLimit) {
+
+                secondLimit = limit;
+                secondPlayer = uuid;
+            }
+        }
+
+        // 自動入札者なし
+        if (topPlayer == null) {
+            return false;
+        }
+
+        long bidUnit = auction.getBidUnit();
+
+        // 2位が居ない
+        if (secondPlayer == null) {
+
+            if (auction.getHighestBidder().equals(topPlayer)) {
+                return false;
+            }
+
+            long challengerPrice = auction.getCurrentPrice();
+
+            long newPrice = Math.min(
+                    topLimit,
+                    challengerPrice + bidUnit
+            );
+
+            if (newPrice > challengerPrice) {
+
+                auction.setCurrentPrice(newPrice);
+                auction.setHighestBidder(topPlayer);
+                auction.setLastBidTime(
+                        System.currentTimeMillis()
+                );
+
+                return true;
+            }
+
+            return false;
+        }
+
+        if (auction.getCurrentPrice() >= topLimit) {
+            return false;
+        }
+
+        long targetPrice =
+                Math.min(
+                        topLimit,
+                        secondLimit + bidUnit
+                );
+
+        if (targetPrice > auction.getCurrentPrice()
+                && topLimit > auction.getCurrentPrice()) {
+
+            auction.setCurrentPrice(targetPrice);
+            auction.setHighestBidder(topPlayer);
+            auction.setLastBidTime(
+                    System.currentTimeMillis()
+            );
+
+            return true;
+        }
+
+        return false;
     }
 }

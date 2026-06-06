@@ -26,6 +26,7 @@ public class KACTabCompleter implements TabCompleter {
             list.add("autobid");
             list.add("exlist");
             list.add("cancel");
+            list.add("help");
 
             return list;
         }

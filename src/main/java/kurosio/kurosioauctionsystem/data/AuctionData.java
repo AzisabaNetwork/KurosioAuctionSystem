@@ -28,6 +28,7 @@ public class AuctionData {
         this.item = item;
         this.startPrice = startPrice;
         this.currentPrice = startPrice;
+        this.highestOfferPrice = startPrice;
         this.bidUnit = bidUnit;
         this.active = true;
         this.lastBidTime = System.currentTimeMillis();
@@ -101,5 +102,15 @@ public class AuctionData {
 
     public void setHighestBidder(UUID highestBidder) {
         this.highestBidder = highestBidder;
+    }
+
+    private long highestOfferPrice;
+
+    public long getHighestOfferPrice() {
+        return highestOfferPrice;
+    }
+
+    public void setHighestOfferPrice(long highestOfferPrice) {
+        this.highestOfferPrice = highestOfferPrice;
     }
 }
