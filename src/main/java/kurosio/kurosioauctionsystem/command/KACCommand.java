@@ -211,7 +211,7 @@ public class KACCommand implements CommandExecutor {
                 // =====================
                 // クリック参加UI
                 // =====================
-                TextComponent join = new TextComponent("§3§l参加§fするにはこちらをクリック！");
+                TextComponent join = new TextComponent("§a§l参加§fするにはこちらをクリック！");
 
                 join.setClickEvent(new ClickEvent(
                         ClickEvent.Action.RUN_COMMAND,
@@ -562,8 +562,13 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
-            // アイテム返却
-            player.getInventory().addItem(auction.getItem());
+            // アイテム返却・送信
+            ItemStack item = auction.getItem().clone();
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+
+            for (ItemStack i : leftover.values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), i);
+            }
 
             // 参加者退出
             for (UUID uuid : manager.getAllJoinedPlayers(auctionId)) {

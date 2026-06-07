@@ -25,14 +25,14 @@ public class ChatUtil {
 
         ItemMeta meta = item.getItemMeta();
 
-        // 🎨 表示名
+        //  表示名
         String name = (meta != null && meta.hasDisplayName())
                 ? meta.getDisplayName()
                 : item.getType().name();
 
         TextComponent text = new TextComponent("§e§l" + name);
 
-        // 📜 Lore作成
+        //  Lore作成
         StringBuilder lore = new StringBuilder();
 
         if (meta != null && meta.hasLore()) {
@@ -43,7 +43,7 @@ public class ChatUtil {
             lore.append("No lore");
         }
 
-        // 🖱 ホバー設定
+        //  ホバー設定
         text.setHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
                 new ComponentBuilder(lore.toString()).create()
