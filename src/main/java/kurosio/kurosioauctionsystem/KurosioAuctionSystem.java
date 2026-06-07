@@ -14,6 +14,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.Map;
 import java.util.UUID;
 
 public final class KurosioAuctionSystem extends JavaPlugin {
@@ -110,9 +111,16 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 );
 
                 // アイテム付与
-                winnerPlayer.getInventory().addItem(
-                        auction.getItem()
-                );
+                Map<Integer, ItemStack> leftOver =
+                        winnerPlayer.getInventory().addItem(auction.getItem());
+
+                for (ItemStack item : leftOver.values()) {
+
+                    winnerPlayer.getWorld().dropItemNaturally(
+                            winnerPlayer.getLocation(),
+                            item
+                    );
+                }
 
                 // 出品者へ入金
                 VaultManager.getEconomy().depositPlayer(
@@ -135,9 +143,18 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
                 // 落札者オフラインなら返却
                 if (seller != null) {
-                    seller.getInventory().addItem(
-                            auction.getItem()
-                    );
+                    Map<Integer, ItemStack> leftOver =
+                            seller.getInventory().addItem(
+                                    auction.getItem()
+                            );
+
+                    for (ItemStack item : leftOver.values()) {
+
+                        seller.getWorld().dropItemNaturally(
+                                seller.getLocation(),
+                                item
+                        );
+                    }
 
                     seller.sendMessage(ChatUtil.color(
                             ChatUtil.PREFIX +
@@ -148,9 +165,18 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         } else {
 
             if (seller != null) {
-                seller.getInventory().addItem(
-                        auction.getItem()
-                );
+                Map<Integer, ItemStack> leftOver =
+                        seller.getInventory().addItem(
+                                auction.getItem()
+                        );
+
+                for (ItemStack item : leftOver.values()) {
+
+                    seller.getWorld().dropItemNaturally(
+                            seller.getLocation(),
+                            item
+                    );
+                }
 
                 seller.sendMessage(ChatUtil.color(
                         ChatUtil.PREFIX +

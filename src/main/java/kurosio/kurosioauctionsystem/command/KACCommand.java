@@ -563,11 +563,18 @@ public class KACCommand implements CommandExecutor {
             }
 
             // アイテム返却・送信
-            ItemStack item = auction.getItem().clone();
-            Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+            // アイテム返却・送信
+            Map<Integer, ItemStack> leftOver =
+                    player.getInventory().addItem(
+                            auction.getItem()
+                    );
 
-            for (ItemStack i : leftover.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), i);
+            for (ItemStack item : leftOver.values()) {
+
+                player.getWorld().dropItemNaturally(
+                        player.getLocation(),
+                        item
+                );
             }
 
             // 参加者退出
