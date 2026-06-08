@@ -17,7 +17,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -205,6 +207,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             }
         }
 
+        Set<UUID> participants = new HashSet<>(
+                manager.getAllJoinedPlayers(auction.getAuctionId())
+        );
+
         // =========================
         // 後処理
         // =========================
@@ -235,24 +241,6 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 ? Bukkit.getOfflinePlayer(winner).getName()
                 : "なし";
 
-        Bukkit.broadcastMessage(ChatUtil.color(
-                ChatUtil.PREFIX + "\n&e===== オークション結果 ====="
-        ));
-
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&eID&f: &f" + auction.getAuctionId()
-        ));
-
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&e落札者&f: &a" + winnerName
-        ));
-
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&e落札価格&f: &6&l" +
-                        String.format("%,d", auction.getCurrentPrice()) +
-                        "円"
-        ));
-
         ItemStack item = auction.getItem();
         ItemMeta meta = item.getItemMeta();
 
@@ -260,13 +248,58 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 ? meta.getDisplayName()
                 : item.getType().name();
 
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&eアイテム名&f: &f" + displayName
-        ));
+        Set<UUID> receivers = new HashSet<>(
+                participants
+        );
 
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&e======================="
-        ));
+// 出品者は必ず含める
+        receivers.add(
+                auction.getSellerUUID()
+        );
+
+// 落札者も必ず含める
+        if (winner != null) {
+            receivers.add(winner);
+        }
+
+        for (UUID uuid : receivers) {
+
+            Player target = Bukkit.getPlayer(uuid);
+
+            if (target == null) continue;
+
+            target.sendMessage(ChatUtil.color(
+                    ChatUtil.PREFIX +
+                            "\n&e===== オークション結果 ====="
+            ));
+
+            target.sendMessage(ChatUtil.color(
+                    "&eID&f: &f" +
+                            auction.getAuctionId()
+            ));
+
+            target.sendMessage(ChatUtil.color(
+                    "&e落札者&f: &a" +
+                            winnerName
+            ));
+
+            target.sendMessage(ChatUtil.color(
+                    "&e落札価格&f: &6&l" +
+                            String.format("%,d",
+                                    auction.getCurrentPrice()
+                            ) +
+                            "円"
+            ));
+
+            target.sendMessage(ChatUtil.color(
+                    "&eアイテム名&f: &f" +
+                            displayName
+            ));
+
+            target.sendMessage(ChatUtil.color(
+                    "&e======================="
+            ));
+        }
 
         if (winner != null && Bukkit.getPlayer(winner) != null) {
             Bukkit.getPlayer(winner).sendMessage(ChatUtil.color(

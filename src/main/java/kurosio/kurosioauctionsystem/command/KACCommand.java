@@ -327,23 +327,30 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+// 金額指定あり
             long newPrice;
-
 
 // 金額指定あり
             if (args.length >= 2) {
-
                 try {
                     newPrice = Long.parseLong(args[1]);
                 } catch (NumberFormatException e) {
                     player.sendMessage("金額が不正です");
                     return true;
                 }
-
             } else {
-
-                // 通常入札（+bidUnit）
                 newPrice = auction.getCurrentPrice() + auction.getBidUnit();
+            }
+
+// 最低価
+            if (newPrice < auction.getCurrentPrice() + auction.getBidUnit()) {
+                player.sendMessage(ChatUtil.color(
+                        ChatUtil.PREFIX +
+                                "&c最低入札額は &6" +
+                                String.format("%,d", auction.getCurrentPrice() + auction.getBidUnit()) +
+                                "円&cです。"
+                ));
+                return true;
             }
 
             long bidUnit = auction.getBidUnit();
@@ -411,9 +418,24 @@ public class KACCommand implements CommandExecutor {
 
             long displayPrice = auction.getCurrentPrice();
 
-            for (Player p : Bukkit.getOnlinePlayers()) {
+            Set<UUID> receivers = new HashSet<>(
+                    manager.getAllJoinedPlayers(
+                            auction.getAuctionId()
+                    )
+            );
 
-                p.sendMessage(ChatUtil.color(
+// 出品者も通知対象
+            receivers.add(
+                    auction.getSellerUUID()
+            );
+
+            for (UUID uuid : receivers) {
+
+                Player target = Bukkit.getPlayer(uuid);
+
+                if (target == null) continue;
+
+                target.sendMessage(ChatUtil.color(
                         "&c現在の入札額: &6" +
                                 String.format("%,d", displayPrice) +
                                 "円" +
@@ -510,36 +532,61 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
-            manager.setAutoBid(player.getUniqueId(), limit);
+            manager.setAutoBid(
+                    player.getUniqueId(),
+                    limit
+            );
 
-            AuctionData auction = manager.getAuction(auctionId);
+            AuctionData auction =
+                    manager.getAuction(auctionId);
 
-            if (auction != null) {
+            if (auction == null) {
 
-                if (limit > auction.getHighestOfferPrice()) {
+                player.sendMessage(ChatUtil.color(
+                        ChatUtil.PREFIX +
+                                "&cオークション情報が見つかりません。"
+                ));
 
-                    auction.setHighestOfferPrice(limit);
-                    auction.setHighestBidder(player.getUniqueId());
-                }
+                return true;
             }
 
+// 自分が最高入札者でなければ即時自動入札を試行
+            if (!player.getUniqueId().equals(
+                    auction.getHighestBidder()
+            )) {
 
-            if (auction != null) {
+                long nextPrice =
+                        auction.getCurrentPrice()
+                                + auction.getBidUnit();
 
-                if (auction.getHighestBidder() == null) {
+                if (nextPrice <= limit) {
 
-                    auction.setHighestBidder(player.getUniqueId());
+                    auction.setCurrentPrice(nextPrice);
+
+                    auction.setHighestBidder(
+                            player.getUniqueId()
+                    );
+
                     auction.setHighestOfferPrice(limit);
 
-                } else if (limit > auction.getHighestOfferPrice()) {
+                    auction.setLastBidTime(
+                            System.currentTimeMillis()
+                    );
 
-                    auction.setHighestBidder(player.getUniqueId());
-                    auction.setHighestOfferPrice(limit);
+                    processAutoBids(
+                            manager,
+                            auction
+                    );
+
+                    manager.notifyUpdate();
                 }
             }
 
             player.sendMessage(ChatUtil.color(
-                    ChatUtil.PREFIX + "&a自動入札を設定しました！ &6上限:" + String.format("%,d", limit) + "円"
+                    ChatUtil.PREFIX +
+                            "&a自動入札を設定しました！ &6上限&f:&6" +
+                            String.format("%,d", limit) +
+                            "円"
             ));
 
             return true;
@@ -635,49 +682,114 @@ public class KACCommand implements CommandExecutor {
         return true;
     }
 
-    private boolean processAutoBids(AuctionManager manager, AuctionData auction) {
+    private boolean processAutoBids(
+            AuctionManager manager,
+            AuctionData auction
+    ) {
 
         long bidUnit = auction.getBidUnit();
 
-        UUID currentWinner = auction.getHighestBidder();
-        long currentPrice = auction.getCurrentPrice();
+        UUID firstPlayer = null;
+        long firstLimit = -1;
 
-        UUID bestPlayer = currentWinner;
-        long bestLimit = auction.getHighestOfferPrice();
+        UUID secondPlayer = null;
+        long secondLimit = -1;
 
-        for (Map.Entry<UUID, Long> entry : manager.getAutoBids().entrySet()) {
+        for (Map.Entry<UUID, Long> entry :
+                manager.getAutoBids().entrySet()) {
 
             UUID uuid = entry.getKey();
             Long limit = entry.getValue();
 
             if (limit == null) continue;
 
-            String joined = manager.getJoinedAuction(uuid);
+            String joined =
+                    manager.getJoinedAuction(uuid);
 
             if (joined == null) continue;
-            if (!joined.equals(auction.getAuctionId())) continue;
 
-            if (limit > bestLimit) {
-                bestLimit = limit;
-                bestPlayer = uuid;
+            if (!joined.equals(
+                    auction.getAuctionId()
+            )) {
+                continue;
+            }
+
+            if (limit > firstLimit) {
+
+                secondPlayer = firstPlayer;
+                secondLimit = firstLimit;
+
+                firstPlayer = uuid;
+                firstLimit = limit;
+
+            } else if (limit > secondLimit) {
+
+                secondPlayer = uuid;
+                secondLimit = limit;
             }
         }
 
-        if (bestPlayer == null) return false;
-
-        long newPrice = Math.min(bestLimit, currentPrice + bidUnit);
-
-        boolean triggered = false;
-
-        if (newPrice > currentPrice) {
-            auction.setCurrentPrice(newPrice);
-            auction.setHighestBidder(bestPlayer);
-            auction.setHighestOfferPrice(bestLimit);
-            auction.setLastBidTime(System.currentTimeMillis());
-            KurosioAuctionSystem.getInstance().saveAuctions();
-            triggered = true;
+        if (firstPlayer == null) {
+            return false;
         }
 
-        return triggered;
+        long newPrice;
+
+        if (secondPlayer == null) {
+
+            newPrice = auction.getStartPrice();
+
+        } else {
+
+            newPrice = Math.min(
+                    firstLimit,
+                    secondLimit + bidUnit
+            );
+        }
+
+        boolean changed = false;
+
+        if (!firstPlayer.equals(
+                auction.getHighestBidder()
+        )) {
+
+            auction.setHighestBidder(firstPlayer);
+            changed = true;
+        }
+
+        if (auction.getCurrentPrice() != newPrice) {
+
+            auction.setCurrentPrice(newPrice);
+            changed = true;
+        }
+
+        auction.setHighestOfferPrice(firstLimit);
+
+        if (changed) {
+
+            auction.setLastBidTime(
+                    System.currentTimeMillis()
+            );
+
+            KurosioAuctionSystem.getInstance()
+                    .saveAuctions();
+
+            Player winner =
+                    Bukkit.getPlayer(firstPlayer);
+
+            if (winner != null) {
+
+                winner.sendMessage(
+                        ChatUtil.color(
+                                ChatUtil.PREFIX +
+                                        "&aあなたの自動入札が実行されました。 &7(現在価格: &6" +
+                                        String.format("%,d", newPrice) +
+                                        "円&7)"
+                        )
+                );
+            }
+        }
+
+        return changed;
     }
 }
