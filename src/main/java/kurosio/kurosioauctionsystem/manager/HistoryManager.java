@@ -11,6 +11,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 public class HistoryManager {
 
@@ -60,12 +63,16 @@ public class HistoryManager {
 
         config.set(
                 path + ".start-time",
-                auction.getStartTime()
+                formatJST(
+                        auction.getStartTime()
+                )
         );
 
         config.set(
                 path + ".end-time",
-                System.currentTimeMillis()
+                formatJST(
+                        System.currentTimeMillis()
+                )
         );
 
         // =========================
@@ -163,5 +170,16 @@ public class HistoryManager {
         );
 
         save();
+    }
+
+    private String formatJST(long millis) {
+
+        return Instant.ofEpochMilli(millis)
+                .atZone(ZoneId.of("Asia/Tokyo"))
+                .format(
+                        DateTimeFormatter.ofPattern(
+                                "yyyy-MM-dd HH:mm:ss"
+                        )
+                );
     }
 }
