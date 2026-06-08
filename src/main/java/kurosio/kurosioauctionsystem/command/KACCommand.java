@@ -176,6 +176,8 @@ public class KACCommand implements CommandExecutor {
             manager.addAuction(auction);
             manager.registerSeller(player.getUniqueId(), auctionId);
 
+            KurosioAuctionSystem.getInstance().saveAuctions();
+
             player.getInventory().setItemInMainHand(null);
             player.updateInventory();
 
@@ -387,6 +389,7 @@ public class KACCommand implements CommandExecutor {
                 auction.setCurrentPrice(newPrice);
                 auction.setHighestOfferPrice(newPrice);
                 auction.setHighestBidder(player.getUniqueId());
+                KurosioAuctionSystem.getInstance().saveAuctions();
             }
 
             auction.setLastBidTime(System.currentTimeMillis());
@@ -587,6 +590,7 @@ public class KACCommand implements CommandExecutor {
 
             // オークション削除
             manager.removeAuction(auctionId);
+            KurosioAuctionSystem.getInstance().saveAuctions();
 
             Bukkit.broadcastMessage(ChatUtil.color(
                     ChatUtil.PREFIX +
@@ -661,6 +665,7 @@ public class KACCommand implements CommandExecutor {
             auction.setHighestBidder(bestPlayer);
             auction.setHighestOfferPrice(bestLimit);
             auction.setLastBidTime(System.currentTimeMillis());
+            KurosioAuctionSystem.getInstance().saveAuctions();
             triggered = true;
         }
 

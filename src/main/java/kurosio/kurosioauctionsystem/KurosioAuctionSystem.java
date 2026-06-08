@@ -4,9 +4,11 @@ import kurosio.kurosioauctionsystem.command.KACCommand;
 import kurosio.kurosioauctionsystem.command.KACTabCompleter;
 import kurosio.kurosioauctionsystem.data.AuctionData;
 import kurosio.kurosioauctionsystem.manager.AuctionManager;
+import kurosio.kurosioauctionsystem.manager.ReturnManager;
 import kurosio.kurosioauctionsystem.manager.VaultManager;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
 import kurosio.kurosioauctionsystem.manager.HistoryManager;
+import kurosio.kurosioauctionsystem.listener.PlayerJoinListener;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -28,6 +30,8 @@ public final class KurosioAuctionSystem extends JavaPlugin {
     private File dataFile;
     private YamlConfiguration dataConfig;
 
+    private ReturnManager returnManager;
+
 
     @Override
     public void onEnable() {
@@ -42,6 +46,12 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         auctionManager = new AuctionManager(this);
         historyManager = new HistoryManager(this);
+        returnManager = new ReturnManager();
+
+        Bukkit.getPluginManager().registerEvents(
+                new PlayerJoinListener(),
+                this
+        );
 
         saveDefaultConfig();
 
@@ -85,6 +95,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
     public HistoryManager getHistoryManager() {
         return historyManager;
+    }
+
+    public ReturnManager getReturnManager() {
+        return returnManager;
     }
 
     // =========================
@@ -295,7 +309,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
     }
 
-    private void saveAuctions() {
+    public void saveAuctions() {
 
         dataConfig.set("auctions", null);
 
@@ -352,12 +366,22 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 auction.setHighestBidder(UUID.fromString(bidder));
             }
 
-            auctionManager.addAuction(auction);
+            auction.setActive(false);
 
-            auctionManager.registerSeller(
+            getHistoryManager().saveHistory(auction);
+
+            returnManager.addReturn(
                     auction.getSellerUUID(),
-                    auction.getAuctionId()
+                    auction.getItem()
             );
+        }
+
+        dataConfig.set("auctions", null);
+
+        try {
+            dataConfig.save(dataFile);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
