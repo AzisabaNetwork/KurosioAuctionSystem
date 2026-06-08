@@ -3,6 +3,7 @@ package kurosio.kurosioauctionsystem;
 import kurosio.kurosioauctionsystem.command.KACCommand;
 import kurosio.kurosioauctionsystem.command.KACTabCompleter;
 import kurosio.kurosioauctionsystem.data.AuctionData;
+import kurosio.kurosioauctionsystem.listener.AuctionQuitListener;
 import kurosio.kurosioauctionsystem.manager.AuctionManager;
 import kurosio.kurosioauctionsystem.manager.ReturnManager;
 import kurosio.kurosioauctionsystem.manager.VaultManager;
@@ -15,10 +16,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import java.io.File;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 public final class KurosioAuctionSystem extends JavaPlugin {
 
@@ -45,11 +48,19 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
 
         auctionManager = new AuctionManager(this);
+
+        auctionManager.setSaveHook(() -> saveAuctions());
+
         historyManager = new HistoryManager(this);
-        returnManager = new ReturnManager();
+        returnManager = new ReturnManager(this);
 
         Bukkit.getPluginManager().registerEvents(
                 new PlayerJoinListener(),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new AuctionQuitListener(),
                 this
         );
 
@@ -164,26 +175,12 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             } else {
 
-                // 落札者オフラインなら返却
-                if (seller != null) {
-                    Map<Integer, ItemStack> leftOver =
-                            seller.getInventory().addItem(
-                                    auction.getItem()
-                            );
+                cancelAuction(
+                        auction,
+                        "落札時に最高入札者がオフラインだったため"
+                );
 
-                    for (ItemStack item : leftOver.values()) {
-
-                        seller.getWorld().dropItemNaturally(
-                                seller.getLocation(),
-                                item
-                        );
-                    }
-
-                    seller.sendMessage(ChatUtil.color(
-                            ChatUtil.PREFIX +
-                                    "&c落札者がオフラインだったため返却しました。"
-                    ));
-                }
+                return;
             }
         } else {
 
@@ -227,6 +224,8 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         manager.removeAuction(
                 auction.getAuctionId()
         );
+
+        manager.notifyUpdate();
 
         // =========================
         // 結果発表
@@ -286,6 +285,40 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
     }
 
+    public void cancelAuction(AuctionData auction, String reason) {
+
+        if (auction == null) return;
+
+        Bukkit.broadcastMessage(ChatUtil.color(
+                ChatUtil.PREFIX +
+                        "&cオークションが中止されました &7(ID:" +
+                        auction.getAuctionId() +
+                        ")"
+        ));
+
+        Bukkit.broadcastMessage(ChatUtil.color(
+                "&7理由: &f" + reason
+        ));
+
+        auction.setActive(false);
+
+        // 出品者へ返却
+        returnManager.addReturn(
+                auction.getSellerUUID(),
+                auction.getItem()
+        );
+
+        // 履歴保存
+        historyManager.saveHistory(auction);
+
+        // 後処理
+        auctionManager.cleanupAuction(
+                auction.getAuctionId()
+        );
+
+        auctionManager.notifyUpdate();
+    }
+
     // =========================
     //  YAML保存・読み込み
     // =========================
@@ -317,13 +350,86 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             String path = "auctions." + auction.getAuctionId();
 
-            dataConfig.set(path + ".seller", auction.getSellerUUID().toString());
-            dataConfig.set(path + ".item", auction.getItem());
-            dataConfig.set(path + ".startPrice", auction.getStartPrice());
-            dataConfig.set(path + ".currentPrice", auction.getCurrentPrice());
-            dataConfig.set(path + ".bidUnit", auction.getBidUnit());
-            dataConfig.set(path + ".lastBidTime", auction.getLastBidTime());
-            dataConfig.set(path + ".active", auction.isActive());
+            UUID seller = auction.getSellerUUID();
+
+            dataConfig.set(
+                    path + ".seller.uuid",
+                    seller.toString()
+            );
+
+            dataConfig.set(
+                    path + ".seller.name",
+                    Bukkit.getOfflinePlayer(seller).getName()
+            );
+            UUID bidder = auction.getHighestBidder();
+
+            if (bidder != null) {
+
+                dataConfig.set(
+                        path + ".bidder.uuid",
+                        bidder.toString()
+                );
+
+                dataConfig.set(
+                        path + ".bidder.name",
+                        Bukkit.getOfflinePlayer(bidder).getName()
+                );
+
+            } else {
+
+                dataConfig.set(path + ".bidder.uuid", "NONE");
+                dataConfig.set(path + ".bidder.name", "NONE");
+            }
+
+            ItemStack item = auction.getItem();
+            ItemMeta meta = item.getItemMeta();
+
+            String displayName =
+                    (meta != null && meta.hasDisplayName())
+                            ? meta.getDisplayName()
+                            : item.getType().name();
+
+
+            dataConfig.set(
+                    path + ".item",
+                    auction.getItem()
+            );
+
+            dataConfig.set(
+                    path + ".item.mythic-item-id",
+                    auction.getMythicItemId()
+            );
+
+            dataConfig.set(
+                    path + ".start-price",
+                    auction.getStartPrice()
+            );
+
+            dataConfig.set(
+                    path + ".current-price",
+                    auction.getCurrentPrice()
+            );
+
+            dataConfig.set(
+                    path + ".bid-unit",
+                    auction.getBidUnit()
+            );
+
+            dataConfig.set(
+                    path + ".active",
+                    auction.isActive()
+            );
+
+            dataConfig.set(
+                    path + ".start-time",
+                    auction.getStartTime()
+            );
+
+            dataConfig.set(
+                    path + ".last-bid-time",
+                    auction.getLastBidTime()
+            );
+
 
             if (auction.getHighestBidder() != null) {
                 dataConfig.set(
@@ -340,9 +446,22 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
     }
 
+    private String formatJST(long millis) {
+
+        return Instant.ofEpochMilli(millis)
+                .atZone(ZoneId.of("Asia/Tokyo"))
+                .format(
+                        DateTimeFormatter.ofPattern(
+                                "yyyy-MM-dd HH:mm:ss"
+                        )
+                );
+    }
+
     private void loadAuctions() {
 
-        if (dataConfig.getConfigurationSection("auctions") == null) return;
+        if (dataConfig.getConfigurationSection("auctions") == null) {
+            return;
+        }
 
         for (String id : dataConfig.getConfigurationSection("auctions").getKeys(false)) {
 
@@ -350,23 +469,29 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             AuctionData auction = new AuctionData(
                     id,
-                    java.util.UUID.fromString(dataConfig.getString(path + ".seller")),
+                    UUID.fromString(
+                            dataConfig.getString(path + ".seller.uuid")
+                    ),
                     dataConfig.getItemStack(path + ".item"),
-                    dataConfig.getLong(path + ".startPrice"),
-                    dataConfig.getLong(path + ".bidUnit")
+                    dataConfig.getLong(path + ".start-price"),
+                    dataConfig.getLong(path + ".bid-unit")
             );
 
-            auction.setCurrentPrice(dataConfig.getLong(path + ".currentPrice"));
-            auction.setLastBidTime(dataConfig.getLong(path + ".lastBidTime"));
-            auction.setActive(dataConfig.getBoolean(path + ".active"));
+            auction.setCurrentPrice(
+                    dataConfig.getLong(path + ".current-price")
+            );
+
+            auction.setLastBidTime(
+                    dataConfig.getLong(path + ".last-bid-time")
+            );
 
             String bidder = dataConfig.getString(path + ".highestBidder");
 
-            if (bidder != null) {
-                auction.setHighestBidder(UUID.fromString(bidder));
+            if (bidder != null && !bidder.equalsIgnoreCase("NONE")) {
+                auction.setHighestBidder(
+                        UUID.fromString(bidder)
+                );
             }
-
-            auction.setActive(false);
 
             getHistoryManager().saveHistory(auction);
 

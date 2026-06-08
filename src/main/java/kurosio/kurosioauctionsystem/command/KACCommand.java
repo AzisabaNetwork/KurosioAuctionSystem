@@ -124,7 +124,7 @@ public class KACCommand implements CommandExecutor {
                 }
 
                 // =====================
-                // 半径制限（ここ追加）
+                // 半径制限
                 // =====================
                 if (radius > 30) {
                     player.sendMessage("半径は最大30mまでです");
@@ -174,9 +174,13 @@ public class KACCommand implements CommandExecutor {
             );
 
             manager.addAuction(auction);
-            manager.registerSeller(player.getUniqueId(), auctionId);
+            manager.registerSeller(
+                    player.getUniqueId(),
+                    auctionId
+            );
 
-            KurosioAuctionSystem.getInstance().saveAuctions();
+// YAMLへ即保存
+            manager.notifyUpdate();
 
             player.getInventory().setItemInMainHand(null);
             player.updateInventory();
@@ -292,6 +296,8 @@ public class KACCommand implements CommandExecutor {
             AuctionManager manager = KurosioAuctionSystem.getInstance()
                     .getAuctionManager();
 
+
+
             String auctionId = manager.getJoinedAuction(player.getUniqueId());
 
             if (auctionId == null) {
@@ -394,6 +400,7 @@ public class KACCommand implements CommandExecutor {
 
             auction.setLastBidTime(System.currentTimeMillis());
 
+            manager.notifyUpdate();
 // 自動入札処理
             boolean autoBidTriggered = processAutoBids(manager, auction);
 
@@ -549,6 +556,8 @@ public class KACCommand implements CommandExecutor {
 
             AuctionManager manager =
                     KurosioAuctionSystem.getInstance().getAuctionManager();
+
+            manager.notifyUpdate();
 
             String auctionId =
                     manager.getSellerAuction(player.getUniqueId());

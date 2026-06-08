@@ -151,7 +151,11 @@ public class AuctionManager {
         }
 
         unregisterSeller(auction.getSellerUUID());
+
         removeAuction(auctionId);
+
+        // ←追加
+        notifyUpdate();
     }
 
     // =========================
@@ -168,5 +172,17 @@ public class AuctionManager {
         plugin.saveConfig();
 
         return String.format("%05d", id);
+    }
+
+    private Runnable saveHook;
+
+    public void setSaveHook(Runnable saveHook) {
+        this.saveHook = saveHook;
+    }
+
+    public void notifyUpdate() {
+        if (saveHook != null) {
+            saveHook.run();
+        }
     }
 }

@@ -10,29 +10,28 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 public class HistoryManager {
 
     private final KurosioAuctionSystem plugin;
 
-    private File file;
-    private FileConfiguration config;
+    private final File file;
+    private final FileConfiguration config;
+
+    private static final ZoneId ZONE = ZoneId.of("Asia/Tokyo");
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public HistoryManager(KurosioAuctionSystem plugin) {
-
         this.plugin = plugin;
 
-        file = new File(
-                plugin.getDataFolder(),
-                "history.yml"
-        );
+        this.file = new File(plugin.getDataFolder(), "history.yml");
 
         if (!file.exists()) {
-
             try {
                 file.createNewFile();
             } catch (IOException e) {
@@ -40,11 +39,10 @@ public class HistoryManager {
             }
         }
 
-        config = YamlConfiguration.loadConfiguration(file);
+        this.config = YamlConfiguration.loadConfiguration(file);
     }
 
     public void save() {
-
         try {
             config.save(file);
         } catch (IOException e) {
@@ -54,132 +52,73 @@ public class HistoryManager {
 
     public void saveHistory(AuctionData auction) {
 
-        String path =
-                "history." + auction.getAuctionId();
+        String base = "history." + auction.getAuctionId();
 
         // =========================
-        // 時刻
+        // 時間
         // =========================
-
-        config.set(
-                path + ".start-time",
-                formatJST(
-                        auction.getStartTime()
-                )
-        );
-
-        config.set(
-                path + ".end-time",
-                formatJST(
-                        System.currentTimeMillis()
-                )
-        );
+        config.set(base + ".start-time", format(auction.getStartTime()));
+        config.set(base + ".end-time", format(System.currentTimeMillis()));
 
         // =========================
         // 出品者
         // =========================
-
-        config.set(
-                path + ".seller-uuid",
-                auction.getSellerUUID().toString()
-        );
-
-        config.set(
-                path + ".seller-name",
-                Bukkit.getOfflinePlayer(
-                        auction.getSellerUUID()
-                ).getName()
-        );
+        UUID seller = auction.getSellerUUID();
+        config.set(base + ".seller.uuid", seller.toString());
+        config.set(base + ".seller.name", getName(seller));
 
         // =========================
         // 落札者
         // =========================
-
-        UUID winner =
-                auction.getHighestBidder();
+        UUID winner = auction.getHighestBidder();
 
         if (winner != null) {
-
-            config.set(
-                    path + ".winner-uuid",
-                    winner.toString()
-            );
-
-            config.set(
-                    path + ".winner-name",
-                    Bukkit.getOfflinePlayer(winner)
-                            .getName()
-            );
-
+            config.set(base + ".winner.uuid", winner.toString());
+            config.set(base + ".winner.name", getName(winner));
         } else {
-
-            config.set(
-                    path + ".winner-uuid",
-                    "NONE"
-            );
-
-            config.set(
-                    path + ".winner-name",
-                    "NONE"
-            );
+            config.set(base + ".winner.uuid", "NONE");
+            config.set(base + ".winner.name", "NONE");
         }
 
         // =========================
         // アイテム情報
         // =========================
+        ItemStack item = auction.getItem();
+        ItemMeta meta = item.getItemMeta();
 
-        ItemStack item =
-                auction.getItem();
+        String displayName = (meta != null && meta.hasDisplayName())
+                ? meta.getDisplayName()
+                : item.getType().name();
 
-        config.set(
-                path + ".item-type",
-                item.getType().name()
-        );
+        config.set(base + ".item.type", item.getType().name());
+        config.set(base + ".item.amount", item.getAmount());
+        config.set(base + ".item.display-name", displayName);
 
-        config.set(
-                path + ".amount",
-                item.getAmount()
-        );
-
-        ItemMeta meta =
-                item.getItemMeta();
-
-        String displayName =
-                (meta != null && meta.hasDisplayName())
-                        ? meta.getDisplayName()
-                        : item.getType().name();
-
-        config.set(
-                path + ".display-name",
-                displayName
-        );
-
-        // Mythic Item ID
-        config.set(
-                path + ".mythic-item-id",
-                auction.getMythicItemId()
-        );
+        // MMID
+        config.set(base + ".item.mythic-item-id", auction.getMythicItemId());
 
         // =========================
         // 価格
         // =========================
-
-        config.set(
-                path + ".price",
-                auction.getCurrentPrice()
-        );
+        config.set(base + ".price", auction.getCurrentPrice());
 
         save();
     }
 
-    private String formatJST(long millis) {
+    // =========================
+    // utils
+    // =========================
 
+    private String format(long millis) {
         return Instant.ofEpochMilli(millis)
-                .atZone(ZoneId.of("Asia/Tokyo"))
-                .format(
-                        DateTimeFormatter.ofPattern(
-                                "yyyy-MM-dd HH:mm:ss"
-                        )
-                );
+                .atZone(ZONE)
+                .format(FORMATTER);
+    }
+
+    private String getName(UUID uuid) {
+        if (uuid == null) return "UNKNOWN";
+
+        String name = Bukkit.getOfflinePlayer(uuid).getName();
+        return name != null ? name : "UNKNOWN";
     }
 }

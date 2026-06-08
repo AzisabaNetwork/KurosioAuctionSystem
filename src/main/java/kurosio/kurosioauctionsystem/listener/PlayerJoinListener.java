@@ -3,6 +3,7 @@ package kurosio.kurosioauctionsystem.listener;
 import kurosio.kurosioauctionsystem.KurosioAuctionSystem;
 import kurosio.kurosioauctionsystem.manager.ReturnManager;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -19,38 +20,46 @@ public class PlayerJoinListener implements Listener {
 
         Player player = e.getPlayer();
 
-        ReturnManager manager =
-                KurosioAuctionSystem.getInstance()
-                        .getReturnManager();
+        Bukkit.getScheduler().runTaskLater(
+                KurosioAuctionSystem.getInstance(),
+                () -> {
 
-        List<ItemStack> items =
-                manager.getReturns(
-                        player.getUniqueId()
-                );
+                    ReturnManager manager =
+                            KurosioAuctionSystem.getInstance()
+                                    .getReturnManager();
 
-        if (items == null || items.isEmpty()) {
-            return;
-        }
+                    List<ItemStack> items =
+                            manager.getReturns(
+                                    player.getUniqueId()
+                            );
 
-        for (ItemStack item : items) {
+                    if (items.isEmpty()) {
+                        return;
+                    }
 
-            Map<Integer, ItemStack> leftOver =
-                    player.getInventory().addItem(item);
+                    for (ItemStack item : items) {
 
-            for (ItemStack left : leftOver.values()) {
+                        Map<Integer, ItemStack> leftOver =
+                                player.getInventory().addItem(item);
 
-                player.getWorld().dropItemNaturally(
-                        player.getLocation(),
-                        left
-                );
-            }
-        }
+                        for (ItemStack left : leftOver.values()) {
 
-        player.sendMessage(ChatUtil.color(
-                ChatUtil.PREFIX +
-                        "&eサーバー異常終了により中止されたオークションのアイテムを返却しました。"
-        ));
+                            player.getWorld().dropItemNaturally(
+                                    player.getLocation(),
+                                    left
+                            );
+                        }
+                    }
 
-        manager.remove(player.getUniqueId());
+                    player.sendMessage(ChatUtil.color(
+                            ChatUtil.PREFIX +
+                                    "&a未受取の返却アイテムを受け取りました。"
+                    ));
+
+                    manager.remove(player.getUniqueId());
+
+                },
+                60L
+        );
     }
 }
