@@ -2,6 +2,9 @@ package kurosio.kurosioauctionsystem.manager;
 
 import kurosio.kurosioauctionsystem.KurosioAuctionSystem;
 import kurosio.kurosioauctionsystem.data.AuctionData;
+import kurosio.kurosioauctionsystem.util.ChatUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -184,5 +187,30 @@ public class AuctionManager {
         if (saveHook != null) {
             saveHook.run();
         }
+    }
+
+    public void startTimer(AuctionData auction) {
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+
+                long remaining = auction.getEndTime() - System.currentTimeMillis();
+
+                if (remaining <= 0) {
+                    cancel();
+                    plugin.finishAuction(auction);
+                    return;
+                }
+
+                long sec = remaining / 1000;
+
+                if (sec == 5 || sec == 3 || sec == 2 || sec == 1) {
+                    Bukkit.broadcastMessage(ChatUtil.color(
+                            ChatUtil.PREFIX + "&eあと" + sec + "秒"
+                    ));
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 }

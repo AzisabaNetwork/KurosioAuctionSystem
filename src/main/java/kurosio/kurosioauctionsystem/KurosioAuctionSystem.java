@@ -83,7 +83,25 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
                 if (!auction.isActive()) continue;
 
-                if (System.currentTimeMillis() - auction.getLastBidTime() >= 20000) {
+                long elapsed =
+                        System.currentTimeMillis()
+                                - auction.getLastBidTime();
+
+                long remaining =
+                        20 - (elapsed / 1000);
+
+                if (remaining == 5
+                        || remaining == 3
+                        || remaining == 2
+                        || remaining == 1) {
+
+                    Bukkit.broadcastMessage(ChatUtil.color(
+                            ChatUtil.PREFIX +
+                                    "&eあと" + remaining + "秒"
+                    ));
+                }
+
+                if (elapsed >= 20000) {
                     finishAuction(auction);
                 }
             }
@@ -118,7 +136,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
     //  終了処理
     // =========================
 
-    private void finishAuction(AuctionData auction) {
+    public void finishAuction(AuctionData auction) {
 
         if (!auction.isActive()) return;
 
@@ -296,6 +314,13 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                             displayName
             ));
 
+            int amount = item.getAmount();
+            if (amount > 1) {
+                target.sendMessage(ChatUtil.color(
+                        "&e個数&f: &f" +
+                                amount
+                ));
+            }
             target.sendMessage(ChatUtil.color(
                     "&e======================="
             ));

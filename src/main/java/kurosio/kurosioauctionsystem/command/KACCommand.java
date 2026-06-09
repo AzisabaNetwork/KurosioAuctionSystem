@@ -211,6 +211,10 @@ public class KACCommand implements CommandExecutor {
                 ChatUtil.send(p, "&a" + player.getName() + "&fさんがオークションを開始しました！");
                 ChatUtil.send(p, "&eID&f: &f" + auction.getAuctionId());
                 ChatUtil.send(p, "&eアイテム名&f: &f" + displayName);
+                int amount = item.getAmount();
+                if (amount > 1) {
+                    ChatUtil.send(p, "&e個数&f: &f" + amount);
+                }
                 ChatUtil.send(p, "&e開始価格&f: &6" + String.format("%,d", startPrice) + "円");
                 ChatUtil.send(p, "&e入札単位&f: &6" + String.format("%,d", bidUnit) + "円");
 
@@ -279,6 +283,10 @@ public class KACCommand implements CommandExecutor {
                     : item.getType().name();
 
             ChatUtil.send(player, "&eアイテム: &f" + displayName);
+            int amount = item.getAmount();
+            if (amount > 1) {
+                ChatUtil.send(player, "&e個数&f: &f" + amount);
+            }
 
             return true;
         }
@@ -330,35 +338,40 @@ public class KACCommand implements CommandExecutor {
 // 金額指定あり
             long newPrice;
 
-// 金額指定あり
+            boolean firstBid = auction.getHighestBidder() == null;
+
             if (args.length >= 2) {
+
                 try {
                     newPrice = Long.parseLong(args[1]);
                 } catch (NumberFormatException e) {
                     player.sendMessage("金額が不正です");
                     return true;
                 }
-            } else {
-                newPrice = auction.getCurrentPrice() + auction.getBidUnit();
-            }
 
-// 最低価
-            if (newPrice < auction.getCurrentPrice() + auction.getBidUnit()) {
-                player.sendMessage(ChatUtil.color(
-                        ChatUtil.PREFIX +
-                                "&c最低入札額は &6" +
-                                String.format("%,d", auction.getCurrentPrice() + auction.getBidUnit()) +
-                                "円&cです。"
-                ));
-                return true;
+            } else {
+
+                // /kac bid
+                if (firstBid) {
+                    newPrice = auction.getStartPrice();
+                } else {
+                    newPrice = auction.getCurrentPrice() + auction.getBidUnit();
+                }
             }
 
             long bidUnit = auction.getBidUnit();
             long currentPrice = auction.getCurrentPrice();
 
 // 最低入札額
-            long minimumPrice = currentPrice + bidUnit;
+            long minimumPrice;
 
+            if (firstBid) {
+                minimumPrice = auction.getStartPrice();
+            } else {
+                minimumPrice = currentPrice + bidUnit;
+            }
+
+// 最低入札額チェック
             if (newPrice < minimumPrice) {
 
                 player.sendMessage(ChatUtil.color(
@@ -371,20 +384,22 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
-            long diff = newPrice - currentPrice;
-
 // 入札単位チェック
-            // 入札単位チェック
-            if (diff % bidUnit != 0) {
+            if (!firstBid) {
 
-                player.sendMessage(ChatUtil.color(
-                        ChatUtil.PREFIX +
-                                "&c入札額は &6" +
-                                String.format("%,d", bidUnit) +
-                                "円&c単位で入力してください。"
-                ));
+                long diff = newPrice - currentPrice;
 
-                return true;
+                if (diff % bidUnit != 0) {
+
+                    player.sendMessage(ChatUtil.color(
+                            ChatUtil.PREFIX +
+                                    "&c入札額は &6" +
+                                    String.format("%,d", bidUnit) +
+                                    "円&c単位で入力してください。"
+                    ));
+
+                    return true;
+                }
             }
 
             double money = VaultManager.getEconomy().getBalance(player);
@@ -650,7 +665,7 @@ public class KACCommand implements CommandExecutor {
 
             Bukkit.broadcastMessage(ChatUtil.color(
                     ChatUtil.PREFIX +
-                            "&cオークションが出品者によって中止されました &eID &f:&f" +
+                            "&cオークションが出品者によって中止されました &eID&f:&f " +
                             auction.getAuctionId()
             ));
 
