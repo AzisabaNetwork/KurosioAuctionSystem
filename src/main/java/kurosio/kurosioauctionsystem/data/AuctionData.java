@@ -141,4 +141,14 @@ public class AuctionData {
         this.endTime = endTime;
     }
 
+    private boolean lastAutoBid = false;
+
+    public boolean isLastAutoBid() {
+        return lastAutoBid;
+    }
+
+    public void setLastAutoBid(boolean lastAutoBid) {
+        this.lastAutoBid = lastAutoBid;
+    }
+
 }

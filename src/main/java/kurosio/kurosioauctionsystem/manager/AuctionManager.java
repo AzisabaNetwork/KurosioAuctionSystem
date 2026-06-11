@@ -4,6 +4,7 @@ import kurosio.kurosioauctionsystem.KurosioAuctionSystem;
 import kurosio.kurosioauctionsystem.data.AuctionData;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -121,9 +122,6 @@ public class AuctionManager {
         return autoBids.get(uuid);
     }
 
-    public void removeAutoBid(UUID uuid) {
-        autoBids.remove(uuid);
-    }
 
     public Map<UUID, Long> getAutoBids() {
         return autoBids;
@@ -189,6 +187,31 @@ public class AuctionManager {
         }
     }
 
+    public Set<UUID> getReceivers(AuctionData auction) {
+
+        Set<UUID> receivers = new HashSet<>(
+                getAllJoinedPlayers(
+                        auction.getAuctionId()
+                )
+        );
+
+        receivers.add(
+                auction.getSellerUUID()
+        );
+
+        if (auction.getHighestBidder() != null) {
+            receivers.add(
+                    auction.getHighestBidder()
+            );
+        }
+
+        return receivers;
+    }
+
+    public void removeAutoBid(UUID uuid) {
+        autoBids.remove(uuid);
+    }
+
     public void startTimer(AuctionData auction) {
 
         new BukkitRunnable() {
@@ -206,11 +229,29 @@ public class AuctionManager {
                 long sec = remaining / 1000;
 
                 if (sec == 5 || sec == 3 || sec == 2 || sec == 1) {
-                    Bukkit.broadcastMessage(ChatUtil.color(
-                            ChatUtil.PREFIX + "&eあと" + sec + "秒"
-                    ));
+
+                    for (UUID uuid : getReceivers(auction)) {
+
+                        Player target = Bukkit.getPlayer(uuid);
+
+                        if (target == null) continue;
+
+                        target.sendMessage(ChatUtil.color(
+                                ChatUtil.PREFIX +
+                                        "&eあと" + sec + "秒"
+                        ));
+                    }
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    private boolean lastAutoBid;
+    public boolean isLastAutoBid() {
+        return lastAutoBid;
+    }
+
+    public void setLastAutoBid(boolean lastAutoBid) {
+        this.lastAutoBid = lastAutoBid;
     }
 }

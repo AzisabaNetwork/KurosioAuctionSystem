@@ -95,10 +95,21 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                         || remaining == 2
                         || remaining == 1) {
 
-                    Bukkit.broadcastMessage(ChatUtil.color(
-                            ChatUtil.PREFIX +
-                                    "&eあと" + remaining + "秒"
-                    ));
+                    for (UUID uuid :
+                            auctionManager.getReceivers(auction)) {
+
+                        Player target =
+                                Bukkit.getPlayer(uuid);
+
+                        if (target == null) continue;
+
+                        target.sendMessage(ChatUtil.color(
+                                ChatUtil.PREFIX +
+                                        "&eあと" +
+                                        remaining +
+                                        "秒"
+                        ));
+                    }
                 }
 
                 if (elapsed >= 20000) {
@@ -229,6 +240,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 manager.getAllJoinedPlayers(auction.getAuctionId())
         );
 
+
         // =========================
         // 後処理
         // =========================
@@ -347,25 +359,65 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         if (auction == null) return;
 
-        Bukkit.broadcastMessage(ChatUtil.color(
-                ChatUtil.PREFIX +
-                        "&cオークションが中止されました &7(ID:" +
-                        auction.getAuctionId() +
-                        ")"
-        ));
+        for (UUID uuid : auctionManager.getReceivers(auction)) {
 
-        Bukkit.broadcastMessage(ChatUtil.color(
-                "&7理由: &f" + reason
-        ));
+            Player target = Bukkit.getPlayer(uuid);
+
+            if (target == null) continue;
+
+            target.sendMessage(ChatUtil.color(
+                    ChatUtil.PREFIX +
+                            "&cオークションが中止されました &7(ID:" +
+                            auction.getAuctionId() +
+                            ")"
+            ));
+        }
+        for (UUID uuid : auctionManager.getReceivers(auction)) {
+
+            Player target = Bukkit.getPlayer(uuid);
+
+            if (target == null) continue;
+
+            target.sendMessage(ChatUtil.color(
+                    "&7理由: &f" + reason
+            ));
+        }
 
         auction.setActive(false);
 
         // 出品者へ返却
-        returnManager.addReturn(
-                auction.getSellerUUID(),
-                auction.getItem()
-        );
+        Player seller =
+                Bukkit.getPlayer(
+                        auction.getSellerUUID()
+                );
 
+        if (seller != null) {
+
+            Map<Integer, ItemStack> leftOver =
+                    seller.getInventory().addItem(
+                            auction.getItem()
+                    );
+
+            for (ItemStack item : leftOver.values()) {
+
+                seller.getWorld().dropItemNaturally(
+                        seller.getLocation(),
+                        item
+                );
+            }
+
+            seller.sendMessage(ChatUtil.color(
+                    ChatUtil.PREFIX +
+                            "&e出品アイテムを返却しました。"
+            ));
+
+        } else {
+
+            returnManager.addReturn(
+                    auction.getSellerUUID(),
+                    auction.getItem()
+            );
+        }
         // 履歴保存
         historyManager.saveHistory(auction);
 
