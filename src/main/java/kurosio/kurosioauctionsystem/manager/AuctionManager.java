@@ -114,10 +114,6 @@ public class AuctionManager {
     // AutoBid
     // =========================
 
-    // =========================
-// AutoBid
-// =========================
-
     // 自動入札上限
     private final Map<UUID, Long> autoBids = new HashMap<>();
 
@@ -151,7 +147,7 @@ public class AuctionManager {
     }
 
     // =========================
-    // 退出処理（重要）
+    // 退出処理
     // =========================
 
     public void leaveAuction(UUID uuid) {
@@ -164,7 +160,7 @@ public class AuctionManager {
     }
 
     // =========================
-    // 終了処理（最重要）
+    // 終了処理
     // =========================
 
     public void cleanupAuction(String auctionId) {
@@ -180,7 +176,7 @@ public class AuctionManager {
 
         removeAuction(auctionId);
 
-        // ←追加
+
         notifyUpdate();
     }
 

@@ -685,7 +685,7 @@ public class KACCommand implements CommandExecutor {
         if (args.length == 1 && args[0].equalsIgnoreCase("help")) {
 
             ChatUtil.send(sender, ChatUtil.PREFIX);
-            ChatUtil.send(sender, "&e=======&6&lコマンド一覧&e=======");
+            ChatUtil.send(sender, "&e=======[&6&lコマンド一覧&e]=======");
             ChatUtil.send(sender, "&a/kac start <開始価格> [入札単位] [半径]");
             ChatUtil.send(sender, "&6&lオークションを開始");
             ChatUtil.send(sender, "&f※入札単位・半径は任意。任意の半径内にｵｰｸｼｮﾝ開始を通知させます。");
@@ -857,7 +857,7 @@ public class KACCommand implements CommandExecutor {
         KurosioAuctionSystem.getInstance().saveAuctions();
 
         // =========================
-        // ④ 通知（全員＋出品者＋自動表示）
+        //  通知
         // =========================
         Set<UUID> receivers = new HashSet<>();
 

@@ -93,7 +93,6 @@ public class ReturnManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public void loadReturns() {
 
         pendingReturns.clear();

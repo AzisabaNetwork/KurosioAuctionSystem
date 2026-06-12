@@ -40,9 +40,6 @@ public class AuctionData {
         this.startTime = System.currentTimeMillis();
     }
 
-    // =====================
-    // 基本情報
-    // =====================
 
     public String getAuctionId() {
         return auctionId;
@@ -56,9 +53,6 @@ public class AuctionData {
         return item;
     }
 
-    // =====================
-    // 価格情報
-    // =====================
 
     public long getStartPrice() {
         return startPrice;
@@ -76,9 +70,6 @@ public class AuctionData {
         return bidUnit;
     }
 
-    // =====================
-    // タイマー系
-    // =====================
 
     public long getLastBidTime() {
         return lastBidTime;
@@ -87,10 +78,6 @@ public class AuctionData {
     public void setLastBidTime(long lastBidTime) {
         this.lastBidTime = lastBidTime;
     }
-
-    // =====================
-    // 状態管理
-    // =====================
 
     public boolean isActive() {
         return active;
