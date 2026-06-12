@@ -88,9 +88,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                                 - auction.getLastBidTime();
 
                 long remaining =
-                        20 - (elapsed / 1000);
+                        35 - (elapsed / 1000);
 
                 if (remaining == 5
+                        || remaining == 4
                         || remaining == 3
                         || remaining == 2
                         || remaining == 1) {
@@ -111,7 +112,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                     }
                 }
 
-                if (elapsed >= 20000) {
+                if (elapsed >= 35000) {
                     finishAuction(auction);
                 }
             }
