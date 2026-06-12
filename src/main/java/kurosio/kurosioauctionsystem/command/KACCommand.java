@@ -464,7 +464,7 @@ public class KACCommand implements CommandExecutor {
 
             if (!autoBidTriggered) {
 
-                String autoLabel = ""; // ←完全に削除 or 空固定
+                String autoLabel = "";
 
                 for (UUID uuid : manager.getReceivers(auction)) {
 
@@ -673,19 +673,6 @@ public class KACCommand implements CommandExecutor {
             // アイテム返却・送信
 
             // 参加者退出
-            for (UUID uuid : manager.getReceivers(auction)) {
-
-                Player target = Bukkit.getPlayer(uuid);
-
-                if (target == null) continue;
-
-                target.sendMessage(ChatUtil.color(
-                        ChatUtil.PREFIX +
-                                "&cオークションが出品者によって中止されました &eID&f: &f" +
-                                auction.getAuctionId()
-                ));
-            }
-
             KurosioAuctionSystem.getInstance()
                     .cancelAuction(
                             auction,
@@ -922,7 +909,7 @@ public class KACCommand implements CommandExecutor {
             ));
         }
 
-        String autoLabel = auction.isLastAutoBid() ? " (自動入札)" : "";
+        String autoLabel = auction.isLastAutoBid() ? " &7（自動入札）" : "";
 
         for (UUID uuid : manager.getAllJoinedPlayers(auction.getAuctionId())) {
 
