@@ -685,8 +685,7 @@ public class KACCommand implements CommandExecutor {
         if (args.length == 1 && args[0].equalsIgnoreCase("help")) {
 
             ChatUtil.send(sender, ChatUtil.PREFIX);
-            ChatUtil.send(sender, "&e=======コマンド一覧=======");
-            ChatUtil.send(sender, "&6&lコマンド一覧");
+            ChatUtil.send(sender, "&e=======&6&lコマンド一覧&e=======");
             ChatUtil.send(sender, "&a/kac start <開始価格> [入札単位] [半径]");
             ChatUtil.send(sender, "&6&lオークションを開始");
             ChatUtil.send(sender, "&f※入札単位・半径は任意。任意の半径内にｵｰｸｼｮﾝ開始を通知させます。");
@@ -694,7 +693,7 @@ public class KACCommand implements CommandExecutor {
             ChatUtil.send(sender, "開始通知の&3&lメッセージクリック&fでも参加できます。");
             ChatUtil.send(sender, "&a/kac leave      &f-オークションから退出");
             ChatUtil.send(sender, "&f※最高入札者の場合退出しても落札者となります。");
-            ChatUtil.send(sender, "&a/kac bid        &f-最低入札単位分入札します。");
+            ChatUtil.send(sender, "&a/kac bid        &f-入札単位分入札します。");
             ChatUtil.send(sender, "&a/kac bid [金額]  &f-入札します。");
             ChatUtil.send(sender, "&f※金額の誤入力に注意");
             ChatUtil.send(sender, "&a/kac autobid <上限額> &f-自動入札を設定します。");

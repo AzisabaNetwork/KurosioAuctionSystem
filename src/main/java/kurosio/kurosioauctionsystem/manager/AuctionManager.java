@@ -259,7 +259,6 @@ public class AuctionManager {
                         if (target == null) continue;
 
                         target.sendMessage(ChatUtil.color(
-                                ChatUtil.PREFIX +
                                         "&eあと" + sec + "秒"
                         ));
                     }

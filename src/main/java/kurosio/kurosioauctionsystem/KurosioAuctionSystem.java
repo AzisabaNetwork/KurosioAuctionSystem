@@ -104,7 +104,6 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                         if (target == null) continue;
 
                         target.sendMessage(ChatUtil.color(
-                                ChatUtil.PREFIX +
                                         "&eあと" +
                                         remaining +
                                         "秒"
