@@ -19,6 +19,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.block.ShulkerBox;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,6 +31,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import net.md_5.bungee.api.chat.BaseComponent;
+
+import static kurosio.kurosioauctionsystem.util.ChatUtil.color;
 
 public final class KurosioAuctionSystem extends JavaPlugin {
 
@@ -108,7 +113,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
                         if (target == null) continue;
 
-                        target.sendMessage(ChatUtil.color(
+                        target.sendMessage(color(
                                         "&eあと" +
                                         remaining +
                                         "秒"
@@ -200,7 +205,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 );
 
                 if (seller != null) {
-                    seller.sendMessage(ChatUtil.color(
+                    seller.sendMessage(color(
                             ChatUtil.PREFIX +
                                     "&a売上として &6&l" +
                                     String.format("%,d", auction.getCurrentPrice()) +
@@ -233,7 +238,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                     );
                 }
 
-                seller.sendMessage(ChatUtil.color(
+                seller.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&e入札者がいなかったためアイテムを返却しました。"
                 ));
@@ -302,22 +307,22 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             if (target == null) continue;
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     ChatUtil.PREFIX +
                             "\n&e===== オークション結果 ====="
             ));
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&eID&f: &f" +
                             auction.getAuctionId()
             ));
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&e落札者&f: &a" +
                             winnerName
             ));
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&e落札価格&f: &6&l" +
                             String.format("%,d",
                                     auction.getCurrentPrice()
@@ -327,14 +332,14 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             TextComponent itemLine =
                     new TextComponent(
-                            ChatUtil.color(
+                            color(
                                     "&eアイテム名&f: "
                             )
                     );
 
             TextComponent itemName =
                     new TextComponent(
-                            ChatUtil.color(
+                            color(
                                     "&f" + displayName
                             )
                     );
@@ -354,18 +359,18 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             int amount = item.getAmount();
             if (amount > 1) {
-                target.sendMessage(ChatUtil.color(
+                target.sendMessage(color(
                         "&e個数&f: &f" +
                                 amount
                 ));
             }
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&e======================="
             ));
         }
 
         if (winner != null && Bukkit.getPlayer(winner) != null) {
-            Bukkit.getPlayer(winner).sendMessage(ChatUtil.color(
+            Bukkit.getPlayer(winner).sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aあなたが落札しました！ &6" +
                             String.format("%,d", auction.getCurrentPrice()) +
@@ -374,7 +379,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
 
         if (seller != null) {
-            seller.sendMessage(ChatUtil.color(
+            seller.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aオークションが終了しました"
             ));
@@ -391,7 +396,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             if (target == null) continue;
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&cオークションが中止されました &7(ID:" +
                             auction.getAuctionId() +
@@ -404,7 +409,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             if (target == null) continue;
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&7理由: &f" + reason
             ));
         }
@@ -432,7 +437,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 );
             }
 
-            seller.sendMessage(ChatUtil.color(
+            seller.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&e出品アイテムを返却しました。"
             ));
@@ -646,30 +651,86 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
     }
 
-    private String buildItemHover(
+    public static String buildItemHover(
             ItemStack item
     ) {
-
-        ItemMeta meta =
-                item.getItemMeta();
-
-        if (meta == null
-                || !meta.hasLore()) {
-
-            return "";
-        }
 
         StringBuilder sb =
                 new StringBuilder();
 
-        for (String line :
-                meta.getLore()) {
+        ItemMeta meta =
+                item.getItemMeta();
 
-            sb.append(
-                    ChatUtil.color(line)
-            ).append("\n");
+        // Lore表示
+        if (meta != null && meta.hasLore()) {
+
+            for (String line : meta.getLore()) {
+
+                sb.append(
+                        color(line)
+                ).append("\n");
+            }
+        }
+
+        // シュルカー中身表示
+        if (meta instanceof BlockStateMeta) {
+
+            BlockStateMeta blockMeta =
+                    (BlockStateMeta) meta;
+
+            if (blockMeta.getBlockState() instanceof ShulkerBox) {
+
+                ShulkerBox shulker =
+                        (ShulkerBox) blockMeta.getBlockState();
+
+                Inventory inv =
+                        shulker.getInventory();
+
+                boolean foundItem = false;
+
+                for (ItemStack content : inv.getContents()) {
+
+                    if (content == null) {
+                        continue;
+                    }
+
+                    if (!foundItem) {
+
+                        if (sb.length() > 0) {
+                            sb.append("\n");
+                        }
+
+                        sb.append("§e──── 内容物 ────\n");
+
+                        foundItem = true;
+                    }
+
+                    ItemMeta contentMeta =
+                            content.getItemMeta();
+
+                    String name;
+
+                    if (contentMeta != null
+                            && contentMeta.hasDisplayName()) {
+
+                        name = color(
+                                contentMeta.getDisplayName()
+                        );
+
+                    } else {
+
+                        name = content.getType().name();
+                    }
+
+                    sb.append(name)
+                            .append(" §7×")
+                            .append(content.getAmount())
+                            .append("\n");
+                }
+            }
         }
 
         return sb.toString().trim();
     }
+
 }

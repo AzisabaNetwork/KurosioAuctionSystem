@@ -9,20 +9,22 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import kurosio.kurosioauctionsystem.manager.VaultManager;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.block.ShulkerBox;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.meta.BlockStateMeta;
 
 import java.util.*;
 
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
+
+import static kurosio.kurosioauctionsystem.util.ChatUtil.color;
 
 public class KACCommand implements CommandExecutor {
 
@@ -46,7 +48,7 @@ public class KACCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatUtil.color(
+            sender.sendMessage(color(
                     ChatUtil.PREFIX + "&a/kac help &fでヘルプを表示できます。"
             ));
             return true;
@@ -214,14 +216,14 @@ public class KACCommand implements CommandExecutor {
                 ChatUtil.send(p, "&eID&f: &f" + auction.getAuctionId());
                 TextComponent itemLine =
                         new TextComponent(
-                                ChatUtil.color(
+                                color(
                                         "&eアイテム名&f: "
                                 )
                         );
 
                 TextComponent itemName =
                         new TextComponent(
-                                ChatUtil.color(
+                                color(
                                         "&f" + displayName
                                 )
                         );
@@ -297,7 +299,7 @@ public class KACCommand implements CommandExecutor {
 
             if (auctionId == null) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c参加中・出品中のオークションがありません。"
                 ));
@@ -328,14 +330,14 @@ public class KACCommand implements CommandExecutor {
 
             TextComponent itemLine =
                     new TextComponent(
-                            ChatUtil.color(
+                            color(
                                     "&eアイテム&f: "
                             )
                     );
 
             TextComponent itemName =
                     new TextComponent(
-                            ChatUtil.color(
+                            color(
                                     "&f" + displayName
                             )
                     );
@@ -391,7 +393,7 @@ public class KACCommand implements CommandExecutor {
 
             if (player.getUniqueId().equals(auction.getHighestBidder())) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c既に最高入札者です。 &7(現在: &6" +
                                 String.format("%,d", auction.getCurrentPrice()) +
@@ -440,7 +442,7 @@ public class KACCommand implements CommandExecutor {
 // 最低入札額チェック
             if (newPrice < minimumPrice) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c最低入札額は &6" +
                                 String.format("%,d", minimumPrice) +
@@ -457,7 +459,7 @@ public class KACCommand implements CommandExecutor {
 
                 if (diff % bidUnit != 0) {
 
-                    player.sendMessage(ChatUtil.color(
+                    player.sendMessage(color(
                             ChatUtil.PREFIX +
                                     "&c入札額は &6" +
                                     String.format("%,d", bidUnit) +
@@ -478,7 +480,7 @@ public class KACCommand implements CommandExecutor {
                 // 自動入札額未満は禁止
                 if (newPrice < autoLimit) {
 
-                    player.sendMessage(ChatUtil.color(
+                    player.sendMessage(color(
                             ChatUtil.PREFIX +
                                     "&c自動入札上限(&6" +
                                     String.format("%,d", autoLimit) +
@@ -493,7 +495,7 @@ public class KACCommand implements CommandExecutor {
                         player.getUniqueId()
                 );
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&e自動入札を解除しました。"
                 ));
@@ -538,7 +540,7 @@ public class KACCommand implements CommandExecutor {
                     Player target = Bukkit.getPlayer(uuid);
                     if (target == null) continue;
 
-                    target.sendMessage(ChatUtil.color(
+                    target.sendMessage(color(
                             "&c現在の入札額: &6" +
                                     String.format("%,d", auction.getCurrentPrice()) +
                                     "円" +
@@ -585,11 +587,11 @@ public class KACCommand implements CommandExecutor {
 
             manager.registerJoin(player.getUniqueId(), auctionId);
 
-            player.sendMessage(ChatUtil.color(
+            player.sendMessage(color(
                     ChatUtil.PREFIX + "&aオークションに参加しました！ &7ID:&f" + auctionId
             ));
 
-            player.sendMessage(ChatUtil.color(
+            player.sendMessage(color(
                     "&e現在の入札額&f: &6" +
                             String.format("%,d", auction.getCurrentPrice()) +
                             "円"
@@ -606,7 +608,7 @@ public class KACCommand implements CommandExecutor {
 
             manager.leaveAuction(player.getUniqueId());
 
-            player.sendMessage(ChatUtil.color(
+            player.sendMessage(color(
                     ChatUtil.PREFIX + "&cオークションから退出しました"
             ));
 
@@ -649,7 +651,7 @@ public class KACCommand implements CommandExecutor {
             if (currentAuto != null
                     && limit < currentAuto) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c現在の自動入札上限より低い金額には変更できません。"
                 ));
@@ -662,7 +664,7 @@ public class KACCommand implements CommandExecutor {
 
             if (auction == null) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&cオークション情報が見つかりません。"
                 ));
@@ -672,7 +674,7 @@ public class KACCommand implements CommandExecutor {
 
             if (limit < auction.getStartPrice()) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c開始価格未満は設定できません。"
                 ));
@@ -682,7 +684,7 @@ public class KACCommand implements CommandExecutor {
 
             if (limit % auction.getBidUnit() != 0) {
 
-                player.sendMessage(ChatUtil.color(
+                player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c入札単位に合わせて入力してください。"
                 ));
@@ -704,7 +706,7 @@ public class KACCommand implements CommandExecutor {
 
             manager.notifyUpdate();
 
-            player.sendMessage(ChatUtil.color(
+            player.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&a自動入札を設定しました！ &6上限&f:&6" +
                             String.format("%,d", limit) +
@@ -942,7 +944,7 @@ public class KACCommand implements CommandExecutor {
             Player target = Bukkit.getPlayer(uuid);
             if (target == null) continue;
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                             "&c現在の入札額: &6" +
                             String.format("%,d", newPrice) +
                             "円" +
@@ -953,7 +955,7 @@ public class KACCommand implements CommandExecutor {
         // 勝者通知
         Player winner = Bukkit.getPlayer(topUser);
         if (winner != null) {
-            winner.sendMessage(ChatUtil.color(
+            winner.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aあなたの入札が更新されました！ &6" +
                             String.format("%,d", newPrice) +
@@ -974,7 +976,7 @@ public class KACCommand implements CommandExecutor {
         Player p = Bukkit.getPlayer(winner);
 
         if (p != null) {
-            p.sendMessage(ChatUtil.color(
+            p.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aあなたの自動入札が反映されました！ &6" +
                             String.format("%,d", price) + "円"
@@ -988,7 +990,7 @@ public class KACCommand implements CommandExecutor {
             Player target = Bukkit.getPlayer(uuid);
             if (target == null) continue;
 
-            target.sendMessage(ChatUtil.color(
+            target.sendMessage(color(
                     "&c現在の入札額: &6" +
                             String.format("%,d", auction.getCurrentPrice()) +
                             "円" +
@@ -997,28 +999,83 @@ public class KACCommand implements CommandExecutor {
         }
     }
 
-    private String buildItemHover(
+    public static String buildItemHover(
             ItemStack item
     ) {
-
-        ItemMeta meta =
-                item.getItemMeta();
-
-        if (meta == null
-                || !meta.hasLore()) {
-
-            return "";
-        }
 
         StringBuilder sb =
                 new StringBuilder();
 
-        for (String line :
-                meta.getLore()) {
+        ItemMeta meta =
+                item.getItemMeta();
 
-            sb.append(
-                    ChatUtil.color(line)
-            ).append("\n");
+        // Lore表示
+        if (meta != null && meta.hasLore()) {
+
+            for (String line : meta.getLore()) {
+
+                sb.append(
+                        color(line)
+                ).append("\n");
+            }
+        }
+
+        // シュルカー中身表示
+        if (meta instanceof BlockStateMeta) {
+
+            BlockStateMeta blockMeta =
+                    (BlockStateMeta) meta;
+
+            if (blockMeta.getBlockState() instanceof ShulkerBox) {
+
+                ShulkerBox shulker =
+                        (ShulkerBox) blockMeta.getBlockState();
+
+                Inventory inv =
+                        shulker.getInventory();
+
+                boolean foundItem = false;
+
+                for (ItemStack content : inv.getContents()) {
+
+                    if (content == null) {
+                        continue;
+                    }
+
+                    if (!foundItem) {
+
+                        if (sb.length() > 0) {
+                            sb.append("\n");
+                        }
+
+                        sb.append("§e──── 内容物 ────\n");
+
+                        foundItem = true;
+                    }
+
+                    ItemMeta contentMeta =
+                            content.getItemMeta();
+
+                    String name;
+
+                    if (contentMeta != null
+                            && contentMeta.hasDisplayName()) {
+
+                        name = color(
+                                contentMeta.getDisplayName()
+                        );
+
+                    } else {
+
+                        name = content.getType().name();
+                    }
+
+                    sb.append(name)
+                            .append(" §7×")
+                            .append(content.getAmount())
+                            .append("\n");
+                }
+            }
         }
 
         return sb.toString().trim();

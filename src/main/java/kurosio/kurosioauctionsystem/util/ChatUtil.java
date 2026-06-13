@@ -7,6 +7,9 @@ import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.block.ShulkerBox;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.meta.BlockStateMeta;
 
 public class ChatUtil {
 
@@ -56,24 +59,79 @@ public class ChatUtil {
             ItemStack item
     ) {
 
-        ItemMeta meta =
-                item.getItemMeta();
-
-        if (meta == null
-                || !meta.hasLore()) {
-
-            return "";
-        }
-
         StringBuilder sb =
                 new StringBuilder();
 
-        for (String line :
-                meta.getLore()) {
+        ItemMeta meta =
+                item.getItemMeta();
 
-            sb.append(
-                    color(line)
-            ).append("\n");
+        // Lore表示
+        if (meta != null && meta.hasLore()) {
+
+            for (String line : meta.getLore()) {
+
+                sb.append(
+                        color(line)
+                ).append("\n");
+            }
+        }
+
+        // シュルカー中身表示
+        if (meta instanceof BlockStateMeta) {
+
+            BlockStateMeta blockMeta =
+                    (BlockStateMeta) meta;
+
+            if (blockMeta.getBlockState() instanceof ShulkerBox) {
+
+                ShulkerBox shulker =
+                        (ShulkerBox) blockMeta.getBlockState();
+
+                Inventory inv =
+                        shulker.getInventory();
+
+                boolean foundItem = false;
+
+                for (ItemStack content : inv.getContents()) {
+
+                    if (content == null) {
+                        continue;
+                    }
+
+                    if (!foundItem) {
+
+                        if (sb.length() > 0) {
+                            sb.append("\n");
+                        }
+
+                        sb.append("§7──── 内容物 ────\n");
+
+                        foundItem = true;
+                    }
+
+                    ItemMeta contentMeta =
+                            content.getItemMeta();
+
+                    String name;
+
+                    if (contentMeta != null
+                            && contentMeta.hasDisplayName()) {
+
+                        name = color(
+                                contentMeta.getDisplayName()
+                        );
+
+                    } else {
+
+                        name = content.getType().name();
+                    }
+
+                    sb.append(name)
+                            .append(" §7×")
+                            .append(content.getAmount())
+                            .append("\n");
+                }
+            }
         }
 
         return sb.toString().trim();
