@@ -10,6 +10,9 @@ import kurosio.kurosioauctionsystem.manager.VaultManager;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
 import kurosio.kurosioauctionsystem.manager.HistoryManager;
 import kurosio.kurosioauctionsystem.listener.PlayerJoinListener;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -24,6 +27,7 @@ import java.util.UUID;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import net.md_5.bungee.api.chat.BaseComponent;
 
 public final class KurosioAuctionSystem extends JavaPlugin {
 
@@ -321,10 +325,32 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                             "円"
             ));
 
-            target.sendMessage(ChatUtil.color(
-                    "&eアイテム名&f: &f" +
-                            displayName
-            ));
+            TextComponent itemLine =
+                    new TextComponent(
+                            ChatUtil.color(
+                                    "&eアイテム名&f: "
+                            )
+                    );
+
+            TextComponent itemName =
+                    new TextComponent(
+                            ChatUtil.color(
+                                    "&f" + displayName
+                            )
+                    );
+
+            itemName.setHoverEvent(
+                    new HoverEvent(
+                            HoverEvent.Action.SHOW_TEXT,
+                            new ComponentBuilder(
+                                    buildItemHover(item)
+                            ).create()
+                    )
+            );
+
+            itemLine.addExtra(itemName);
+
+            target.spigot().sendMessage(itemLine);
 
             int amount = item.getAmount();
             if (amount > 1) {
@@ -618,5 +644,32 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private String buildItemHover(
+            ItemStack item
+    ) {
+
+        ItemMeta meta =
+                item.getItemMeta();
+
+        if (meta == null
+                || !meta.hasLore()) {
+
+            return "";
+        }
+
+        StringBuilder sb =
+                new StringBuilder();
+
+        for (String line :
+                meta.getLore()) {
+
+            sb.append(
+                    ChatUtil.color(line)
+            ).append("\n");
+        }
+
+        return sb.toString().trim();
     }
 }

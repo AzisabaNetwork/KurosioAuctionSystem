@@ -212,7 +212,32 @@ public class KACCommand implements CommandExecutor {
                 ChatUtil.send(p, "&e=======================");
                 ChatUtil.send(p, "&a" + player.getName() + "&fさんがオークションを開始しました！");
                 ChatUtil.send(p, "&eID&f: &f" + auction.getAuctionId());
-                ChatUtil.send(p, "&eアイテム名&f: &f" + displayName);
+                TextComponent itemLine =
+                        new TextComponent(
+                                ChatUtil.color(
+                                        "&eアイテム名&f: "
+                                )
+                        );
+
+                TextComponent itemName =
+                        new TextComponent(
+                                ChatUtil.color(
+                                        "&f" + displayName
+                                )
+                        );
+
+                itemName.setHoverEvent(
+                        new HoverEvent(
+                                HoverEvent.Action.SHOW_TEXT,
+                                new ComponentBuilder(
+                                        buildItemHover(item)
+                                ).create()
+                        )
+                );
+
+                itemLine.addExtra(itemName);
+
+                p.spigot().sendMessage(itemLine);
                 int amount = item.getAmount();
                 if (amount > 1) {
                     ChatUtil.send(p, "&e個数&f: &f" + amount);
@@ -253,13 +278,30 @@ public class KACCommand implements CommandExecutor {
 
             Player player = (Player) sender;
 
-            String auctionId = KurosioAuctionSystem
-                    .getInstance()
-                    .getAuctionManager()
-                    .getSellerAuction(player.getUniqueId());
+            AuctionManager manager =
+                    KurosioAuctionSystem.getInstance()
+                            .getAuctionManager();
+
+            String auctionId =
+                    manager.getSellerAuction(
+                            player.getUniqueId()
+                    );
 
             if (auctionId == null) {
-                player.sendMessage("出品中のオークションはありません");
+
+                auctionId =
+                        manager.getJoinedAuction(
+                                player.getUniqueId()
+                        );
+            }
+
+            if (auctionId == null) {
+
+                player.sendMessage(ChatUtil.color(
+                        ChatUtil.PREFIX +
+                                "&c参加中・出品中のオークションがありません。"
+                ));
+
                 return true;
             }
 
@@ -284,7 +326,32 @@ public class KACCommand implements CommandExecutor {
                     ? meta.getDisplayName()
                     : item.getType().name();
 
-            ChatUtil.send(player, "&eアイテム: &f" + displayName);
+            TextComponent itemLine =
+                    new TextComponent(
+                            ChatUtil.color(
+                                    "&eアイテム&f: "
+                            )
+                    );
+
+            TextComponent itemName =
+                    new TextComponent(
+                            ChatUtil.color(
+                                    "&f" + displayName
+                            )
+                    );
+
+            itemName.setHoverEvent(
+                    new HoverEvent(
+                            HoverEvent.Action.SHOW_TEXT,
+                            new ComponentBuilder(
+                                    ChatUtil.buildItemHover(item)
+                            ).create()
+                    )
+            );
+
+            itemLine.addExtra(itemName);
+
+            player.spigot().sendMessage(itemLine);
             int amount = item.getAmount();
             if (amount > 1) {
                 ChatUtil.send(player, "&e個数&f: &f" + amount);
@@ -522,6 +589,12 @@ public class KACCommand implements CommandExecutor {
                     ChatUtil.PREFIX + "&aオークションに参加しました！ &7ID:&f" + auctionId
             ));
 
+            player.sendMessage(ChatUtil.color(
+                    "&e現在の入札額&f: &6" +
+                            String.format("%,d", auction.getCurrentPrice()) +
+                            "円"
+            ));
+
             return true;
         }
 
@@ -697,7 +770,7 @@ public class KACCommand implements CommandExecutor {
             ChatUtil.send(sender, "&a/kac bid [金額]  &f-入札します。");
             ChatUtil.send(sender, "&f※金額の誤入力に注意");
             ChatUtil.send(sender, "&a/kac autobid <上限額> &f-自動入札を設定します。");
-            ChatUtil.send(sender, "&a/kac exlist     &f-出品状況を表示 &c出品者のみ");
+            ChatUtil.send(sender, "&a/kac exlist     &f-参加・出品中のオークション情報を表示");
             ChatUtil.send(sender, "&a/kac cancel     &f-出品中オークションを中止 &c出品者のみ");
             ChatUtil.send(sender, "&e========================");
 
@@ -922,5 +995,32 @@ public class KACCommand implements CommandExecutor {
                             autoLabel
             ));
         }
+    }
+
+    private String buildItemHover(
+            ItemStack item
+    ) {
+
+        ItemMeta meta =
+                item.getItemMeta();
+
+        if (meta == null
+                || !meta.hasLore()) {
+
+            return "";
+        }
+
+        StringBuilder sb =
+                new StringBuilder();
+
+        for (String line :
+                meta.getLore()) {
+
+            sb.append(
+                    ChatUtil.color(line)
+            ).append("\n");
+        }
+
+        return sb.toString().trim();
     }
 }

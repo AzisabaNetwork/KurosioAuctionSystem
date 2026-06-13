@@ -51,4 +51,31 @@ public class ChatUtil {
 
         return text;
     }
+
+    public static String buildItemHover(
+            ItemStack item
+    ) {
+
+        ItemMeta meta =
+                item.getItemMeta();
+
+        if (meta == null
+                || !meta.hasLore()) {
+
+            return "";
+        }
+
+        StringBuilder sb =
+                new StringBuilder();
+
+        for (String line :
+                meta.getLore()) {
+
+            sb.append(
+                    color(line)
+            ).append("\n");
+        }
+
+        return sb.toString().trim();
+    }
 }
