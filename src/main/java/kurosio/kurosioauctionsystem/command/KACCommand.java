@@ -518,7 +518,6 @@ public class KACCommand implements CommandExecutor {
 
             auction.setLastBidTime(System.currentTimeMillis());
 
-            manager.notifyUpdate();
 
             boolean autoBidTriggered =
                     processAutoBids(manager, auction);
@@ -530,6 +529,8 @@ public class KACCommand implements CommandExecutor {
                             String.format("%,d", newPrice) +
                             "円"
             );
+
+            manager.notifyUpdate();
 
             if (!autoBidTriggered) {
 
