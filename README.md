@@ -59,7 +59,18 @@ https://help.kankocho.jp/knowledge/help023
 
 
 
+### 動作環境
 
+- Spigot/Paper 1.15.2+
+- Java 11+
+- Vault
+- Vault対応経済プラグイン
+### インストール
+
+1. Vaultを導入
+2. 経済プラグインを導入
+3. KurosioAuctionSystem.jar を plugins フォルダへ配置
+4. サーバーを再起動
 
 ### License
 
@@ -67,3 +78,6 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
 See the LICENSE file for details.
 
+#### Dependencies
+
+- Vault (Milkbowl)
