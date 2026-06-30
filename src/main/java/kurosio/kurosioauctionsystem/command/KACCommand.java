@@ -85,7 +85,9 @@ public class KACCommand implements CommandExecutor {
 
             long startPrice;
             long bidUnit = 1000;
-            double radius = 15;
+            double radius = 30;
+            boolean autoBidEnabled = false;
+            UUID excludedPlayer = null;
 
             // =====================
             // 開始価格
@@ -102,39 +104,67 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
-            // =====================
-            // 入札単位
-            // =====================
-            if (args.length >= 3) {
-                try {
-                    bidUnit = Long.parseLong(args[2]);
-                } catch (NumberFormatException e) {
-                    player.sendMessage("入札単位が不正です");
-                    return true;
-                }
-            }
+            for (int i = 2; i < args.length; i++) {
 
-            // =====================
-            // 半径
-            // =====================
-            if (args.length >= 4) {
-                try {
-                    radius = Double.parseDouble(args[3]);
-                } catch (NumberFormatException e) {
-                    player.sendMessage("半径が不正です");
-                    return true;
-                }
+                String option = args[i];
 
-                // =====================
-                // 半径制限
-                // =====================
-                if (radius > 30) {
-                    player.sendMessage("半径は最大30mまでです");
-                    radius = 30;
-                }
+                if (option.startsWith("u:")) {
 
-                if (radius < 0) {
-                    player.sendMessage("半径は0以上にしてください");
+                    try {
+                        bidUnit = Long.parseLong(option.substring(2));
+                    } catch (NumberFormatException e) {
+                        player.sendMessage("入札単位が不正です");
+                        return true;
+                    }
+
+                } else if (option.startsWith("r:")) {
+
+                    try {
+                        radius = Double.parseDouble(option.substring(2));
+                    } catch (NumberFormatException e) {
+                        player.sendMessage("半径が不正です");
+                        return true;
+                    }
+
+                    if (radius > 50) {
+                        player.sendMessage("半径は最大50mまでです");
+                        radius = 50;
+                    }
+
+                    if (radius < 0) {
+                        player.sendMessage("半径は0以上にしてください");
+                        return true;
+                    }
+
+                } else if (option.startsWith("auto:")) {
+
+                    String value = option.substring(5);
+
+                    if (value.equalsIgnoreCase("on")) {
+                        autoBidEnabled = true;
+                    } else if (value.equalsIgnoreCase("off")) {
+                        autoBidEnabled = false;
+                    } else {
+                        player.sendMessage("auto:on または auto:off を指定してください");
+                        return true;
+                    }
+
+                } else if (option.startsWith("exp:")) {
+
+                    String name = option.substring(4);
+
+                    Player target = Bukkit.getPlayerExact(name);
+
+                    if (target == null) {
+                        player.sendMessage("プレイヤーが見つかりません。");
+                        return true;
+                    }
+
+                    excludedPlayer = target.getUniqueId();
+
+                } else {
+
+                    player.sendMessage("不明なオプション: " + option);
                     return true;
                 }
             }
@@ -174,6 +204,9 @@ public class KACCommand implements CommandExecutor {
                     startPrice,
                     bidUnit
             );
+
+            auction.setAutoBidEnabled(autoBidEnabled);
+            auction.setExcludedPlayer(excludedPlayer);
 
             manager.addAuction(auction);
             manager.registerSeller(
@@ -246,6 +279,11 @@ public class KACCommand implements CommandExecutor {
                 }
                 ChatUtil.send(p, "&e開始価格&f: &6" + String.format("%,d", startPrice) + "円");
                 ChatUtil.send(p, "&e入札単位&f: &6" + String.format("%,d", bidUnit) + "円");
+                ChatUtil.send(
+                        p,
+                        "&e自動入札機能&f: " +
+                                (auction.isAutoBidEnabled() ? "&aON" : "&cOFF")
+                );
 
                 // =====================
                 // クリック参加UI
@@ -383,10 +421,35 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+
             AuctionData auction = manager.getAuction(auctionId);
 
             if (auction == null || !auction.isActive()) {
                 player.sendMessage("オークションが存在しません");
+                return true;
+            }
+
+            if (auction.getExcludedPlayer() != null
+                    && auction.getExcludedPlayer().equals(player.getUniqueId())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&cこのオークションには入札できません。"
+                ));
+
+                return true;
+            }
+
+            // =========================
+// 出品者は入札不可
+// =========================
+            if (auction.getSellerUUID().equals(player.getUniqueId())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c出品者は自分のオークションに入札できません。"
+                ));
+
                 return true;
             }
 
@@ -575,6 +638,17 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+            if (auction.getExcludedPlayer() != null
+                    && auction.getExcludedPlayer().equals(player.getUniqueId())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&cこのオークションには参加できません。"
+                ));
+
+                return true;
+            }
+
             if (!auction.isActive()) {
                 player.sendMessage("このオークションは終了しています");
                 return true;
@@ -645,6 +719,8 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+
+
             Long currentAuto =
                     manager.getAutoBids()
                             .get(player.getUniqueId());
@@ -673,6 +749,40 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+            if (auction.getExcludedPlayer() != null
+                    && auction.getExcludedPlayer().equals(player.getUniqueId())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&cこのオークションでは自動入札できません。"
+                ));
+
+                return true;
+            }
+
+            // =========================
+// 出品者は自動入札不可
+// =========================
+            if (auction.getSellerUUID().equals(player.getUniqueId())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c出品者は自分のオークションに自動入札できません。"
+                ));
+
+                return true;
+            }
+
+            if (!auction.isAutoBidEnabled()) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&cこのオークションでは自動入札は使用できません。"
+                ));
+
+                return true;
+            }
+
             if (limit < auction.getStartPrice()) {
 
                 player.sendMessage(color(
@@ -688,6 +798,18 @@ public class KACCommand implements CommandExecutor {
                 player.sendMessage(color(
                         ChatUtil.PREFIX +
                                 "&c入札単位に合わせて入力してください。"
+                ));
+
+                return true;
+            }
+
+            double money = VaultManager.getEconomy().getBalance(player);
+
+            if (limit > money) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c所持金を超える自動入札上限は設定できません。"
                 ));
 
                 return true;
@@ -762,9 +884,11 @@ public class KACCommand implements CommandExecutor {
 
             ChatUtil.send(sender, ChatUtil.PREFIX);
             ChatUtil.send(sender, "&e=======[&6&lコマンド一覧&e]=======");
-            ChatUtil.send(sender, "&a/kac start <開始価格> [入札単位] [半径]");
+            ChatUtil.send(sender, "&a/kac start <開始価格> [&cu:&a<入札単位>] [&cr:&a<半径>] [&cauto:&a<on/off>] [&cexp:&a<MCID>]");
             ChatUtil.send(sender, "&6&lオークションを開始");
             ChatUtil.send(sender, "&f※入札単位・半径は任意。任意の半径内にｵｰｸｼｮﾝ開始を通知させます。");
+            ChatUtil.send(sender, "&fonにすると自動入札機能が使えるように設定されます。ﾃﾞﾌｫﾙﾄ:off");
+            ChatUtil.send(sender, "&f※&aexp:<MCID> &fを指定するとそのプレイヤーは参加・入札・自動入札できません。");
             ChatUtil.send(sender, "&a/kac join <ID>  &f-オークションへ参加");
             ChatUtil.send(sender, "開始通知の&3&lメッセージクリック&fでも参加できます。");
             ChatUtil.send(sender, "&a/kac leave      &f-オークションから退出");
@@ -813,13 +937,35 @@ public class KACCommand implements CommandExecutor {
         }
 
         // =========================
-        // 自動入札者追加
-        // =========================
+// 自動入札者追加
+// =========================
         for (Map.Entry<UUID, Long> entry : manager.getAutoBids().entrySet()) {
 
             UUID uuid = entry.getKey();
 
             if (!auctionId.equals(manager.getJoinedAuction(uuid))) {
+                continue;
+            }
+
+            // =========================
+            // 所持金チェック
+            // =========================
+            double balance = VaultManager.getEconomy()
+                    .getBalance(Bukkit.getOfflinePlayer(uuid));
+
+            if (balance < entry.getValue()) {
+
+                manager.removeAutoBid(uuid);
+
+                Player online = Bukkit.getPlayer(uuid);
+
+                if (online != null) {
+                    online.sendMessage(color(
+                            ChatUtil.PREFIX +
+                                    "&e所持金不足のため自動入札を解除しました。"
+                    ));
+                }
+
                 continue;
             }
 

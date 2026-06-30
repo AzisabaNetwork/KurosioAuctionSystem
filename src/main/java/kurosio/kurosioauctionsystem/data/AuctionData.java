@@ -17,6 +17,7 @@ public class AuctionData {
 
     private long lastBidTime;
     private boolean active = true;
+    private boolean autoBidEnabled = false;
 
     private long endTime;
 
@@ -136,6 +137,24 @@ public class AuctionData {
 
     public void setLastAutoBid(boolean lastAutoBid) {
         this.lastAutoBid = lastAutoBid;
+    }
+
+    public boolean isAutoBidEnabled() {
+        return autoBidEnabled;
+    }
+
+    public void setAutoBidEnabled(boolean autoBidEnabled) {
+        this.autoBidEnabled = autoBidEnabled;
+    }
+
+    private UUID excludedPlayer;
+
+    public UUID getExcludedPlayer() {
+        return excludedPlayer;
+    }
+
+    public void setExcludedPlayer(UUID excludedPlayer) {
+        this.excludedPlayer = excludedPlayer;
     }
 
 }

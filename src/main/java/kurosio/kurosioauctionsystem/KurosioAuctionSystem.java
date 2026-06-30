@@ -13,6 +13,7 @@ import kurosio.kurosioauctionsystem.listener.PlayerJoinListener;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -174,18 +175,52 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             if (winnerPlayer != null) {
 
-                // 落札者から徴収
-                VaultManager.getEconomy().withdrawPlayer(
-                        winnerPlayer,
-                        auction.getCurrentPrice()
-                );
+                // =========================
+// 所持金チェック
+// =========================
+                double balance =
+                        VaultManager.getEconomy()
+                                .getBalance(winnerPlayer);
 
-                // アイテム付与
+                if (balance < auction.getCurrentPrice()) {
+
+                    cancelAuction(
+                            auction,
+                            "落札者の所持金不足のため"
+                    );
+
+                    return;
+                }
+
+// =========================
+// 徴収
+// =========================
+                EconomyResponse response =
+                        VaultManager.getEconomy()
+                                .withdrawPlayer(
+                                        winnerPlayer,
+                                        auction.getCurrentPrice()
+                                );
+
+                if (!response.transactionSuccess()) {
+
+                    cancelAuction(
+                            auction,
+                            "落札処理に失敗したため"
+                    );
+
+                    return;
+                }
+
+// =========================
+// アイテム付与
+// =========================
                 Map<Integer, ItemStack> leftOver =
-                        winnerPlayer.getInventory().addItem(auction.getItem());
+                        winnerPlayer.getInventory().addItem(
+                                auction.getItem()
+                        );
 
                 for (ItemStack item : leftOver.values()) {
-
                     winnerPlayer.getWorld().dropItemNaturally(
                             winnerPlayer.getLocation(),
                             item
@@ -193,12 +228,19 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                 }
 
                 // 出品者へ入金
-                VaultManager.getEconomy().depositPlayer(
-                        Bukkit.getOfflinePlayer(
-                                auction.getSellerUUID()
-                        ),
-                        auction.getCurrentPrice()
-                );
+                EconomyResponse depositResponse =
+                        VaultManager.getEconomy().depositPlayer(
+                                Bukkit.getOfflinePlayer(
+                                        auction.getSellerUUID()
+                                ),
+                                auction.getCurrentPrice()
+                        );
+
+                if (!depositResponse.transactionSuccess()) {
+                    getLogger().warning(
+                            "出品者への入金に失敗しました。(ID: " + auction.getAuctionId() + ")"
+                    );
+                }
 
                 if (seller != null) {
                     seller.sendMessage(color(
@@ -208,6 +250,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                                     "円&a受け取りました。"
                     ));
                 }
+
 
             } else {
 
@@ -553,6 +596,11 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             );
 
             dataConfig.set(
+                    path + ".auto-bid-enabled",
+                    auction.isAutoBidEnabled()
+            );
+
+            dataConfig.set(
                     path + ".active",
                     auction.isActive()
             );
@@ -610,6 +658,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             auction.setLastBidTime(
                     dataConfig.getLong(path + ".last-bid-time")
+            );
+
+            auction.setAutoBidEnabled(
+                    dataConfig.getBoolean(path + ".auto-bid-enabled", false)
             );
 
             String bidder = dataConfig.getString(path + ".highestBidder");
