@@ -11,26 +11,20 @@ public class ReturnManager {
 
     private final KurosioAuctionSystem plugin;
 
-    private final Map<UUID, List<ItemStack>> pendingReturns =
-            new HashMap<>();
+    private final Map<UUID, List<ItemStack>> pendingReturns = new HashMap<>();
 
     private File returnFile;
     private YamlConfiguration returnConfig;
 
     public ReturnManager(KurosioAuctionSystem plugin) {
-
         this.plugin = plugin;
-
         setupFile();
         loadReturns();
     }
 
     private void setupFile() {
 
-        returnFile = new File(
-                plugin.getDataFolder(),
-                "returns.yml"
-        );
+        returnFile = new File(plugin.getDataFolder(), "returns.yml");
 
         if (!returnFile.exists()) {
             try {
@@ -40,8 +34,7 @@ public class ReturnManager {
             }
         }
 
-        returnConfig =
-                YamlConfiguration.loadConfiguration(returnFile);
+        returnConfig = YamlConfiguration.loadConfiguration(returnFile);
     }
 
     public void addReturn(UUID uuid, ItemStack item) {
@@ -54,7 +47,7 @@ public class ReturnManager {
     }
 
     public List<ItemStack> getReturns(UUID uuid) {
-        return pendingReturns.getOrDefault(uuid, new ArrayList<>());
+        return pendingReturns.computeIfAbsent(uuid, k -> new ArrayList<ItemStack>());
     }
 
     public void remove(UUID uuid) {
@@ -67,11 +60,7 @@ public class ReturnManager {
         returnConfig.set("returns", null);
 
         for (Map.Entry<UUID, List<ItemStack>> entry : pendingReturns.entrySet()) {
-
-            returnConfig.set(
-                    "returns." + entry.getKey(),
-                    entry.getValue()
-            );
+            returnConfig.set("returns." + entry.getKey().toString(), entry.getValue());
         }
 
         try {
@@ -81,27 +70,30 @@ public class ReturnManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public void loadReturns() {
 
         pendingReturns.clear();
 
-        if (returnConfig.getConfigurationSection("returns") == null) {
-            return;
-        }
+        if (returnConfig.getConfigurationSection("returns") == null) return;
 
-        for (String uuidString :
-                returnConfig.getConfigurationSection("returns").getKeys(false)) {
+        Set<String> keys = returnConfig.getConfigurationSection("returns").getKeys(false);
 
-            UUID uuid = UUID.fromString(uuidString);
+        for (String uuidString : keys) {
 
-            List<?> raw = returnConfig.getList("returns." + uuidString);
+            UUID uuid;
 
-            if (raw == null) continue;
+            try {
+                uuid = UUID.fromString(uuidString);
+            } catch (IllegalArgumentException e) {
+                continue;
+            }
 
-            List<ItemStack> items = new ArrayList<>();
+            List<?> rawList = returnConfig.getList("returns." + uuidString);
+            if (rawList == null) continue;
 
-            for (Object obj : raw) {
+            List<ItemStack> items = new ArrayList<ItemStack>();
+
+            for (Object obj : rawList) {
                 if (obj instanceof ItemStack) {
                     items.add((ItemStack) obj);
                 }
