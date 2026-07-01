@@ -695,9 +695,39 @@ public class KACCommand implements CommandExecutor {
 
         if (args.length == 1 && args[0].equalsIgnoreCase("leave")) {
 
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("プレイヤーのみ実行可能");
+                return true;
+            }
+
             Player player = (Player) sender;
 
-            AuctionManager manager = KurosioAuctionSystem.getInstance().getAuctionManager();
+            AuctionManager manager =
+                    KurosioAuctionSystem.getInstance().getAuctionManager();
+
+            String auctionId = manager.getJoinedAuction(player.getUniqueId());
+
+            if (auctionId == null) {
+                player.sendMessage("参加中のオークションがありません");
+                return true;
+            }
+
+            AuctionData auction = manager.getAuction(auctionId);
+
+            if (auction == null) {
+                player.sendMessage("オークションが見つかりません");
+                return true;
+            }
+
+            // 最高入札者チェック
+            if (player.getUniqueId().equals(auction.getHighestBidder())) {
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c最高入札者は退出できません"
+                ));
+                return true;
+            }
 
             manager.leaveAuction(player.getUniqueId());
 
