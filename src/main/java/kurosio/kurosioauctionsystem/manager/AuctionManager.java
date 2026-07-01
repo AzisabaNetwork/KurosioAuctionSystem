@@ -246,53 +246,29 @@ public class AuctionManager {
 
     public void recalculateWinner(AuctionData auction) {
 
-        if (auction == null) {
-            return;
-        }
+        if (auction == null) return;
 
-        List<Map.Entry<UUID, Long>> ranking =
-                auction.getRanking();
+        List<Map.Entry<UUID, Long>> ranking = auction.getRanking();
 
         if (ranking.isEmpty()) {
-
             auction.setHighestBidder(null);
-            auction.setHighestOfferPrice(
-                    auction.getStartPrice()
-            );
-            auction.setCurrentPrice(
-                    auction.getStartPrice()
-            );
-
+            auction.setCurrentPrice(auction.getStartPrice());
             return;
         }
 
-        Map.Entry<UUID, Long> first =
-                ranking.get(0);
+        UUID firstId = ranking.get(0).getKey();
+        long firstVal = ranking.get(0).getValue();
 
-        if (ranking.size() == 1) {
+        long secondVal = (ranking.size() >= 2)
+                ? ranking.get(1).getValue()
+                : 0;
 
-            auction.updateWinner(
-                    first.getKey(),
-                    first.getValue(),
-                    auction.getStartPrice()
-            );
-
-            return;
-        }
-
-        Map.Entry<UUID, Long> second =
-                ranking.get(1);
-
-        long currentPrice = Math.min(
-                first.getValue(),
-                second.getValue() + auction.getBidUnit()
+        long currentPrice = Math.max(
+                auction.getStartPrice(),
+                Math.min(firstVal, secondVal + auction.getBidUnit())
         );
 
-        auction.updateWinner(
-                first.getKey(),
-                first.getValue(),
-                currentPrice
-        );
+        auction.updateWinner(firstId, firstVal, currentPrice);
 
         notifyUpdate();
     }

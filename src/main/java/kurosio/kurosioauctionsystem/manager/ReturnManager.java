@@ -41,35 +41,24 @@ public class ReturnManager {
         }
 
         returnConfig =
-                YamlConfiguration.loadConfiguration(
-                        returnFile
-                );
+                YamlConfiguration.loadConfiguration(returnFile);
     }
 
     public void addReturn(UUID uuid, ItemStack item) {
 
         pendingReturns
-                .computeIfAbsent(
-                        uuid,
-                        k -> new ArrayList<>()
-                )
+                .computeIfAbsent(uuid, k -> new ArrayList<>())
                 .add(item.clone());
 
         saveReturns();
     }
 
     public List<ItemStack> getReturns(UUID uuid) {
-
-        return pendingReturns.getOrDefault(
-                uuid,
-                new ArrayList<>()
-        );
+        return pendingReturns.getOrDefault(uuid, new ArrayList<>());
     }
 
     public void remove(UUID uuid) {
-
         pendingReturns.remove(uuid);
-
         saveReturns();
     }
 
@@ -77,8 +66,7 @@ public class ReturnManager {
 
         returnConfig.set("returns", null);
 
-        for (Map.Entry<UUID, List<ItemStack>> entry :
-                pendingReturns.entrySet()) {
+        for (Map.Entry<UUID, List<ItemStack>> entry : pendingReturns.entrySet()) {
 
             returnConfig.set(
                     "returns." + entry.getKey(),
@@ -93,6 +81,7 @@ public class ReturnManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void loadReturns() {
 
         pendingReturns.clear();
@@ -102,21 +91,24 @@ public class ReturnManager {
         }
 
         for (String uuidString :
-                returnConfig.getConfigurationSection("returns")
-                        .getKeys(false)) {
+                returnConfig.getConfigurationSection("returns").getKeys(false)) {
 
             UUID uuid = UUID.fromString(uuidString);
 
-            List<ItemStack> items =
-                    (List<ItemStack>) returnConfig.getList(
-                            "returns." + uuidString
-                    );
+            List<?> raw = returnConfig.getList("returns." + uuidString);
 
-            if (items != null) {
-                pendingReturns.put(
-                        uuid,
-                        new ArrayList<>(items)
-                );
+            if (raw == null) continue;
+
+            List<ItemStack> items = new ArrayList<>();
+
+            for (Object obj : raw) {
+                if (obj instanceof ItemStack) {
+                    items.add((ItemStack) obj);
+                }
+            }
+
+            if (!items.isEmpty()) {
+                pendingReturns.put(uuid, items);
             }
         }
     }

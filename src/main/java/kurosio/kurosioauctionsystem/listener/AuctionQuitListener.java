@@ -6,6 +6,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.UUID;
+
 public class AuctionQuitListener implements Listener {
 
     @EventHandler
@@ -14,22 +16,20 @@ public class AuctionQuitListener implements Listener {
         KurosioAuctionSystem plugin =
                 KurosioAuctionSystem.getInstance();
 
-        for (AuctionData auction :
-                plugin.getAuctionManager().getAuctions()) {
+        UUID uuid = event.getPlayer().getUniqueId();
+
+        for (AuctionData auction : plugin.getAuctionManager().getAuctions()) {
 
             if (!auction.isActive()) continue;
 
-            if (auction.getSellerUUID().equals(
-                    event.getPlayer().getUniqueId()
-            )) {
-
-                plugin.cancelAuction(
-                        auction,
-                        "出品者がログアウトしたため"
-                );
-
+            if (auction.getSellerUUID().equals(uuid)) {
+                plugin.cancelAuction(auction, "出品者がログアウトしたため");
                 return;
             }
+        }
+
+        if (plugin.getAuctionManager().hasJoined(uuid)) {
+            plugin.getAuctionManager().leaveAuction(uuid);
         }
     }
 }

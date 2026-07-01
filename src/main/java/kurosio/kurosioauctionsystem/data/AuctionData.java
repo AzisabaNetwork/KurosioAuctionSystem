@@ -2,9 +2,6 @@ package kurosio.kurosioauctionsystem.data;
 
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.*;
 
 public class AuctionData {
@@ -12,18 +9,23 @@ public class AuctionData {
     private final String auctionId;
     private final UUID sellerUUID;
     private final ItemStack item;
+
     private final Map<UUID, Long> highestOffers = new HashMap<>();
 
     private long startPrice;
     private long currentPrice;
     private long bidUnit;
-    private long startTime;
 
+    private long startTime;
     private long lastBidTime;
+    private long endTime;
+
     private boolean active = true;
     private boolean autoBidEnabled = false;
+    private boolean lastAutoBid = false;
 
-    private long endTime;
+    private UUID highestBidder;
+    private UUID excludedPlayer;
 
     private String mythicItemId;
 
@@ -36,167 +38,80 @@ public class AuctionData {
         this.auctionId = auctionId;
         this.sellerUUID = sellerUUID;
         this.item = item;
+
         this.startPrice = startPrice;
         this.currentPrice = startPrice;
-        this.highestOfferPrice = startPrice;
         this.bidUnit = bidUnit;
-        this.active = true;
-        this.lastBidTime = System.currentTimeMillis();
+
         this.startTime = System.currentTimeMillis();
+        this.lastBidTime = System.currentTimeMillis();
     }
 
+    // ===== 基本 =====
 
-    public String getAuctionId() {
-        return auctionId;
-    }
+    public String getAuctionId() { return auctionId; }
+    public UUID getSellerUUID() { return sellerUUID; }
+    public ItemStack getItem() { return item; }
 
-    public UUID getSellerUUID() {
-        return sellerUUID;
-    }
+    public long getStartPrice() { return startPrice; }
+    public long getCurrentPrice() { return currentPrice; }
+    public void setCurrentPrice(long v) { this.currentPrice = v; }
 
-    public ItemStack getItem() {
-        return item;
-    }
+    public long getBidUnit() { return bidUnit; }
 
+    public long getStartTime() { return startTime; }
+    public long getLastBidTime() { return lastBidTime; }
+    public void setLastBidTime(long v) { this.lastBidTime = v; }
 
-    public long getStartPrice() {
-        return startPrice;
-    }
+    public long getEndTime() { return endTime; }
+    public void setEndTime(long v) { this.endTime = v; }
 
-    public long getCurrentPrice() {
-        return currentPrice;
-    }
+    public boolean isActive() { return active; }
+    public void setActive(boolean v) { this.active = v; }
 
-    public void setCurrentPrice(long currentPrice) {
-        this.currentPrice = currentPrice;
-    }
+    public boolean isAutoBidEnabled() { return autoBidEnabled; }
+    public void setAutoBidEnabled(boolean v) { this.autoBidEnabled = v; }
 
-    public long getBidUnit() {
-        return bidUnit;
-    }
+    public boolean isLastAutoBid() { return lastAutoBid; }
+    public void setLastAutoBid(boolean v) { this.lastAutoBid = v; }
 
+    public UUID getHighestBidder() { return highestBidder; }
+    public void setHighestBidder(UUID v) { this.highestBidder = v; }
 
-    public long getLastBidTime() {
-        return lastBidTime;
-    }
+    public UUID getExcludedPlayer() { return excludedPlayer; }
+    public void setExcludedPlayer(UUID v) { this.excludedPlayer = v; }
 
-    public void setLastBidTime(long lastBidTime) {
-        this.lastBidTime = lastBidTime;
-    }
+    public String getMythicItemId() { return mythicItemId; }
+    public void setMythicItemId(String v) { this.mythicItemId = v; }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    private UUID highestBidder;
-
-    public UUID getHighestBidder() {
-        return highestBidder;
-    }
-
-    public void setHighestBidder(UUID highestBidder) {
-        this.highestBidder = highestBidder;
-    }
-
-    private long highestOfferPrice;
-
-    public long getHighestOfferPrice() {
-        return highestOfferPrice;
-    }
-
-    public void setHighestOfferPrice(long highestOfferPrice) {
-        this.highestOfferPrice = highestOfferPrice;
-    }
-
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public String getMythicItemId() {
-        return mythicItemId;
-    }
-
-    public void setMythicItemId(String mythicItemId) {
-        this.mythicItemId = mythicItemId;
-    }
-
-    public long getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
-    }
-
-    private boolean lastAutoBid = false;
-
-    public boolean isLastAutoBid() {
-        return lastAutoBid;
-    }
-
-    public void setLastAutoBid(boolean lastAutoBid) {
-        this.lastAutoBid = lastAutoBid;
-    }
-
-    public boolean isAutoBidEnabled() {
-        return autoBidEnabled;
-    }
-
-    public void setAutoBidEnabled(boolean autoBidEnabled) {
-        this.autoBidEnabled = autoBidEnabled;
-    }
-
-    private UUID excludedPlayer;
-
-    public UUID getExcludedPlayer() {
-        return excludedPlayer;
-    }
-
-    public void setExcludedPlayer(UUID excludedPlayer) {
-        this.excludedPlayer = excludedPlayer;
-    }
+    // ===== 入札管理 =====
 
     public Map<UUID, Long> getHighestOffers() {
         return highestOffers;
-    }
-
-    public List<Map.Entry<UUID, Long>> getRanking() {
-
-        List<Map.Entry<UUID, Long>> ranking =
-                new ArrayList<>(highestOffers.entrySet());
-
-        ranking.sort((a, b) -> {
-
-            int compare =
-                    Long.compare(b.getValue(), a.getValue());
-
-            if (compare != 0) {
-                return compare;
-            }
-
-            return 0;
-        });
-
-        return ranking;
     }
 
     public void removeBidder(UUID uuid) {
         highestOffers.remove(uuid);
     }
 
+    public List<Map.Entry<UUID, Long>> getRanking() {
 
-    public void updateWinner(UUID bidder, long offerPrice, long currentPrice) {
+        List<Map.Entry<UUID, Long>> list =
+                new ArrayList<>(highestOffers.entrySet());
 
-        this.highestBidder = bidder;
-        this.highestOfferPrice = offerPrice;
-        this.currentPrice = currentPrice;
+        list.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        return list;
     }
 
+    public long getHighestOfferPrice() {
+        return getRanking().isEmpty()
+                ? startPrice
+                : getRanking().get(0).getValue();
+    }
 
-
+    public void updateWinner(UUID bidder, long offerPrice, long currentPrice) {
+        this.highestBidder = bidder;
+        this.currentPrice = currentPrice;
+    }
 }

@@ -579,9 +579,11 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             getHistoryManager().saveHistory(auction);
 
-            returnManager.addReturn(
+            auctionManager.addAuction(auction);
+
+            auctionManager.registerSeller(
                     auction.getSellerUUID(),
-                    auction.getItem()
+                    auction.getAuctionId()
             );
         }
 
