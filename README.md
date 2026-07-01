@@ -65,14 +65,14 @@ https://help.kankocho.jp/knowledge/help023
 ### 動作環境
 
 - Spigot/Paper 1.15.2+
-- Java 11+
+- Java 8+
 - Vault
 - Vault対応経済プラグイン
 ### インストール
 
-1. Vaultを導入
-2. 経済プラグインを導入
-3. KurosioAuctionSystem.jar を plugins フォルダへ配置
+1. VaultとVault対応の経済プラグインを導入
+2. ItemStashを導入 (任意: アイテムロスト防止)
+3. KurosioAuctionSystem-x.x.x.jar を plugins フォルダへ配置
 4. サーバーを再起動
 
 ### License
