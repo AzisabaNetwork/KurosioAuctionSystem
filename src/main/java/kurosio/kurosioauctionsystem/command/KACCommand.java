@@ -1014,9 +1014,6 @@ public class KACCommand implements CommandExecutor {
 
                 auction.setHighestBidder(only);
 
-                auction.setHighestOfferPrice(
-                        limits.get(only)
-                );
 
                 auction.setLastAutoBid(true);
 
