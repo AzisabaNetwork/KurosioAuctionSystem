@@ -3,6 +3,7 @@ package kurosio.kurosioauctionsystem.listener;
 import kurosio.kurosioauctionsystem.KurosioAuctionSystem;
 import kurosio.kurosioauctionsystem.manager.ReturnManager;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
+import kurosio.kurosioauctionsystem.util.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,7 +12,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.Map;
 
 public class PlayerJoinListener implements Listener {
 
@@ -39,16 +39,10 @@ public class PlayerJoinListener implements Listener {
 
                     for (ItemStack item : items) {
 
-                        Map<Integer, ItemStack> leftOver =
-                                player.getInventory().addItem(item);
-
-                        for (ItemStack left : leftOver.values()) {
-
-                            player.getWorld().dropItemNaturally(
-                                    player.getLocation(),
-                                    left
-                            );
-                        }
+                        ItemUtil.giveItemOrStash(
+                                player,
+                                item
+                        );
                     }
 
                     player.sendMessage(ChatUtil.color(

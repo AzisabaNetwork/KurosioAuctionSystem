@@ -10,6 +10,7 @@ import kurosio.kurosioauctionsystem.manager.VaultManager;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
 import kurosio.kurosioauctionsystem.manager.HistoryManager;
 import kurosio.kurosioauctionsystem.listener.PlayerJoinListener;
+import kurosio.kurosioauctionsystem.util.ItemUtil;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -24,10 +25,7 @@ import org.bukkit.block.ShulkerBox;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import java.io.File;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static kurosio.kurosioauctionsystem.util.ChatUtil.color;
 
@@ -164,7 +162,18 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         AuctionManager manager = auctionManager;
 
         Player seller = Bukkit.getPlayer(auction.getSellerUUID());
-        UUID winner = auction.getHighestBidder();
+        UUID winner = null;
+
+        List<Map.Entry<UUID, Long>> ranking =
+                new ArrayList<>(
+                        auction.getHighestOffers().entrySet()
+                );
+
+        ranking.sort((a, b) ->
+                Long.compare(
+                        b.getValue(),
+                        a.getValue()
+                ));
 
         // =========================
         // 落札処理
@@ -175,22 +184,6 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             if (winnerPlayer != null) {
 
-                // =========================
-// 所持金チェック
-// =========================
-                double balance =
-                        VaultManager.getEconomy()
-                                .getBalance(winnerPlayer);
-
-                if (balance < auction.getCurrentPrice()) {
-
-                    cancelAuction(
-                            auction,
-                            "落札者の所持金不足のため"
-                    );
-
-                    return;
-                }
 
 // =========================
 // 徴収
@@ -215,17 +208,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 // =========================
 // アイテム付与
 // =========================
-                Map<Integer, ItemStack> leftOver =
-                        winnerPlayer.getInventory().addItem(
-                                auction.getItem()
-                        );
-
-                for (ItemStack item : leftOver.values()) {
-                    winnerPlayer.getWorld().dropItemNaturally(
-                            winnerPlayer.getLocation(),
-                            item
-                    );
-                }
+                ItemUtil.giveItemOrStash(
+                        winnerPlayer,
+                        auction.getItem()
+                );
 
                 // 出品者へ入金
                 EconomyResponse depositResponse =
@@ -264,18 +250,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         } else {
 
             if (seller != null) {
-                Map<Integer, ItemStack> leftOver =
-                        seller.getInventory().addItem(
-                                auction.getItem()
-                        );
-
-                for (ItemStack item : leftOver.values()) {
-
-                    seller.getWorld().dropItemNaturally(
-                            seller.getLocation(),
-                            item
-                    );
-                }
+                ItemUtil.giveItemOrStash(
+                        seller,
+                        auction.getItem()
+                );
 
                 seller.sendMessage(color(
                         ChatUtil.PREFIX +
@@ -463,18 +441,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         if (seller != null) {
 
-            Map<Integer, ItemStack> leftOver =
-                    seller.getInventory().addItem(
-                            auction.getItem()
-                    );
-
-            for (ItemStack item : leftOver.values()) {
-
-                seller.getWorld().dropItemNaturally(
-                        seller.getLocation(),
-                        item
-                );
-            }
+            ItemUtil.giveItemOrStash(
+                    seller,
+                    auction.getItem()
+            );
 
             seller.sendMessage(color(
                     ChatUtil.PREFIX +

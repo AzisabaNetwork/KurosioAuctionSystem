@@ -1,9 +1,12 @@
 name: KurosioAuctionSystem
-version: '2.3.1'
+version: '2.4.0'
 main: kurosio.kurosioauctionsystem.KurosioAuctionSystem
 api-version: '1.15'
 depend:
   - Vault
+
+softdepend:
+  - ItemStash
 
 commands:
   kac:

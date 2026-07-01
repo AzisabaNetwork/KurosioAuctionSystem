@@ -117,6 +117,10 @@ public class KACCommand implements CommandExecutor {
                         return true;
                     }
 
+                    if (bidUnit <= 0) {
+                        player.sendMessage("入札単位は1円以上を指定してください。");
+                        return true;
+                    }
                 } else if (option.startsWith("r:")) {
 
                     try {
@@ -423,6 +427,7 @@ public class KACCommand implements CommandExecutor {
 
 
             AuctionData auction = manager.getAuction(auctionId);
+            manager.recalculateWinner(auction);
 
             if (auction == null || !auction.isActive()) {
                 player.sendMessage("オークションが存在しません");
@@ -567,17 +572,30 @@ public class KACCommand implements CommandExecutor {
             double money = VaultManager.getEconomy().getBalance(player);
 
             if (money < newPrice) {
-                player.sendMessage("お金が足りません");
+
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c所持金が不足しています。"
+                ));
+
                 return true;
             } else {
 
                 // 普通の入札
-                auction.setCurrentPrice(newPrice);
-                auction.setHighestOfferPrice(newPrice);
-                auction.setHighestBidder(player.getUniqueId());
+                auction.getHighestOffers().put(
+                        player.getUniqueId(),
+                        newPrice
+                );
+
+
+                manager.recalculateWinner(auction);
+
                 auction.setLastAutoBid(false);
+                auction.setLastBidTime(System.currentTimeMillis());
+
                 KurosioAuctionSystem.getInstance().saveAuctions();
             }
+
 
             auction.setLastBidTime(System.currentTimeMillis());
 
@@ -589,7 +607,7 @@ public class KACCommand implements CommandExecutor {
                     player,
                     ChatUtil.PREFIX +
                             "&a入札しました！ &6&l" +
-                            String.format("%,d", newPrice) +
+                            String.format("%,d", auction.getCurrentPrice()) +
                             "円"
             );
 
@@ -708,6 +726,13 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
+            if (limit <= 0) {
+                player.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&c自動入札上限は1円以上を指定してください。"
+                ));
+                return true;
+            }
 
 
             AuctionManager manager = KurosioAuctionSystem.getInstance().getAuctionManager();
@@ -956,6 +981,8 @@ public class KACCommand implements CommandExecutor {
             if (balance < entry.getValue()) {
 
                 manager.removeAutoBid(uuid);
+                auction.removeBidder(uuid);
+                manager.recalculateWinner(auction);
 
                 Player online = Bukkit.getPlayer(uuid);
 
@@ -1052,31 +1079,30 @@ public class KACCommand implements CommandExecutor {
             );
         });
 
-        UUID topUser = sorted.get(0).getKey();
-        long topLimit = sorted.get(0).getValue();
+        long beforePrice = auction.getCurrentPrice();
+        UUID beforeWinner = auction.getHighestBidder();
 
-        UUID secondUser = sorted.get(1).getKey();
-        long secondLimit = sorted.get(1).getValue();
+// 上限だけ更新
+        auction.getHighestOffers().put(
+                sorted.get(0).getKey(),
+                sorted.get(0).getValue()
+        );
 
-        long currentPrice = auction.getCurrentPrice();
+// ランキングから現在価格・勝者を再計算
+        manager.recalculateWinner(auction);
 
-        long newPrice = Math.min(topLimit, secondLimit + bidUnit);
-
-        if (newPrice <= currentPrice) {
+        if (beforePrice == auction.getCurrentPrice()
+                && Objects.equals(beforeWinner, auction.getHighestBidder())) {
             return false;
         }
 
-        UUID priceOwner = topUser;
-
-        boolean autoTriggered = true;
-
-        auction.setHighestBidder(topUser);
-        auction.setHighestOfferPrice(topLimit);
-        auction.setCurrentPrice(newPrice);
-        auction.setLastAutoBid(autoTriggered);
+        auction.setLastAutoBid(true);
         auction.setLastBidTime(System.currentTimeMillis());
 
         KurosioAuctionSystem.getInstance().saveAuctions();
+
+        boolean autoTriggered = true;
+        UUID topUser = auction.getHighestBidder();
 
         // =========================
         //  通知
@@ -1093,7 +1119,7 @@ public class KACCommand implements CommandExecutor {
 
             target.sendMessage(color(
                             "&c現在の入札額: &6" +
-                            String.format("%,d", newPrice) +
+                                    String.format("%,d", auction.getCurrentPrice()) +
                             "円" +
                             (autoTriggered ? " &7（自動入札）" : "")
             ));
@@ -1101,11 +1127,12 @@ public class KACCommand implements CommandExecutor {
 
         // 勝者通知
         Player winner = Bukkit.getPlayer(topUser);
+
         if (winner != null) {
             winner.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aあなたの入札が更新されました！ &6" +
-                            String.format("%,d", newPrice) +
+                            String.format("%,d", auction.getCurrentPrice()) +
                             "円"
             ));
         }

@@ -2,6 +2,10 @@ package kurosio.kurosioauctionsystem.manager;
 
 import kurosio.kurosioauctionsystem.KurosioAuctionSystem;
 import kurosio.kurosioauctionsystem.data.AuctionData;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import static kurosio.kurosioauctionsystem.util.ChatUtil.color;
 
 import java.util.*;
 
@@ -18,7 +22,7 @@ public class AuctionManager {
     // 参加者 → auctionId
     private final Map<UUID, String> joinedAuctions = new HashMap<>();
 
-    // 自動入札上限
+    // 自動入札上限設定時刻
     private final Map<UUID, Long> autoBidTime = new HashMap<>();
 
     public AuctionManager(KurosioAuctionSystem plugin) {
@@ -137,7 +141,6 @@ public class AuctionManager {
     public void leaveAuction(UUID uuid) {
 
         joinedAuctions.remove(uuid);
-        sellerAuctions.remove(uuid);
 
         autoBids.remove(uuid);
         autoBidTime.remove(uuid);
@@ -212,5 +215,87 @@ public class AuctionManager {
 
         return receivers;
     }
+
+
+
+    public void broadcastCurrentPrice(AuctionData auction) {
+
+        String auto =
+                auction.isLastAutoBid()
+                        ? " &7(自動入札)"
+                        : "";
+
+        for (UUID uuid : getReceivers(auction)) {
+
+            Player target =
+                    Bukkit.getPlayer(uuid);
+
+            if (target == null) {
+                continue;
+            }
+
+            target.sendMessage(color(
+                    "&c現在の入札額: &6" +
+                            String.format("%,d",
+                                    auction.getCurrentPrice()) +
+                            "円" +
+                            auto
+            ));
+        }
+    }
+
+    public void recalculateWinner(AuctionData auction) {
+
+        if (auction == null) {
+            return;
+        }
+
+        List<Map.Entry<UUID, Long>> ranking =
+                auction.getRanking();
+
+        if (ranking.isEmpty()) {
+
+            auction.setHighestBidder(null);
+            auction.setHighestOfferPrice(
+                    auction.getStartPrice()
+            );
+            auction.setCurrentPrice(
+                    auction.getStartPrice()
+            );
+
+            return;
+        }
+
+        Map.Entry<UUID, Long> first =
+                ranking.get(0);
+
+        if (ranking.size() == 1) {
+
+            auction.updateWinner(
+                    first.getKey(),
+                    first.getValue(),
+                    auction.getStartPrice()
+            );
+
+            return;
+        }
+
+        Map.Entry<UUID, Long> second =
+                ranking.get(1);
+
+        long currentPrice = Math.min(
+                first.getValue(),
+                second.getValue() + auction.getBidUnit()
+        );
+
+        auction.updateWinner(
+                first.getKey(),
+                first.getValue(),
+                currentPrice
+        );
+
+        notifyUpdate();
+    }
+
 
 }
