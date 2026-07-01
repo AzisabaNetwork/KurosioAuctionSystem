@@ -84,3 +84,6 @@ See the LICENSE file for details.
 #### Dependencies
 
 - Vault (Milkbowl)
+
+#### Softdependencies
+- ItemStash
