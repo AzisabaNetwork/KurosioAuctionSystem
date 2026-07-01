@@ -156,104 +156,97 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         if (!auction.isActive()) return;
 
         auction.setActive(false);
-
         auction.setEndTime(System.currentTimeMillis());
 
         AuctionManager manager = auctionManager;
 
         Player seller = Bukkit.getPlayer(auction.getSellerUUID());
-        UUID winner = null;
 
+        // =========================
+        // ランキング
+        // =========================
         List<Map.Entry<UUID, Long>> ranking =
-                new ArrayList<>(
-                        auction.getHighestOffers().entrySet()
-                );
+                new ArrayList<>(auction.getHighestOffers().entrySet());
 
         ranking.sort((a, b) ->
-                Long.compare(
-                        b.getValue(),
-                        a.getValue()
-                ));
+                Long.compare(b.getValue(), a.getValue())
+        );
+
+        UUID winner = ranking.isEmpty() ? null : ranking.get(0).getKey();
+        long price = ranking.isEmpty() ? 0 : ranking.get(0).getValue();
+
+        // =========================
+        // チェック
+        // =========================
+        if (winner != null && price <= 0) {
+            cancelAuction(auction, "不正な入札データ");
+            return;
+        }
+
+        Player winnerPlayer = (winner != null)
+                ? Bukkit.getPlayer(winner)
+                : null;
 
         // =========================
         // 落札処理
         // =========================
         if (winner != null) {
 
-            Player winnerPlayer = Bukkit.getPlayer(winner);
-
-            if (winnerPlayer != null) {
-
-
-// =========================
-// 徴収
-// =========================
-                EconomyResponse response =
-                        VaultManager.getEconomy()
-                                .withdrawPlayer(
-                                        winnerPlayer,
-                                        auction.getCurrentPrice()
-                                );
-
-                if (!response.transactionSuccess()) {
-
-                    cancelAuction(
-                            auction,
-                            "落札処理に失敗したため"
-                    );
-
-                    return;
-                }
-
-// =========================
-// アイテム付与
-// =========================
-                ItemUtil.giveItemOrStash(
-                        winnerPlayer,
-                        auction.getItem()
-                );
-
-                // 出品者へ入金
-                EconomyResponse depositResponse =
-                        VaultManager.getEconomy().depositPlayer(
-                                Bukkit.getOfflinePlayer(
-                                        auction.getSellerUUID()
-                                ),
-                                auction.getCurrentPrice()
-                        );
-
-                if (!depositResponse.transactionSuccess()) {
-                    getLogger().warning(
-                            "出品者への入金に失敗しました。(ID: " + auction.getAuctionId() + ")"
-                    );
-                }
-
-                if (seller != null) {
-                    seller.sendMessage(color(
-                            ChatUtil.PREFIX +
-                                    "&a売上として &6&l" +
-                                    String.format("%,d", auction.getCurrentPrice()) +
-                                    "円&a受け取りました。"
-                    ));
-                }
-
-
-            } else {
-
-                cancelAuction(
-                        auction,
-                        "落札時に最高入札者がオフラインだったため"
-                );
-
+            if (winnerPlayer == null) {
+                cancelAuction(auction, "落札者がオフライン");
                 return;
             }
-        } else {
+
+            // 残高チェック（NORMAL必須）
+            if (VaultManager.getEconomy().getBalance(winnerPlayer) < price) {
+                cancelAuction(auction, "残高不足");
+                return;
+            }
+
+            // =========================
+            // 徴収
+            // =========================
+            EconomyResponse withdraw =
+                    VaultManager.getEconomy().withdrawPlayer(winnerPlayer, price);
+
+            if (!withdraw.transactionSuccess()) {
+                cancelAuction(auction, "徴収失敗");
+                return;
+            }
+
+            // =========================
+            // アイテム付与
+            // =========================
+            ItemUtil.giveItemOrStash(winnerPlayer, auction.getItem());
+
+            // =========================
+            // 出品者へ送金
+            // =========================
+            EconomyResponse deposit =
+                    VaultManager.getEconomy().depositPlayer(
+                            Bukkit.getOfflinePlayer(auction.getSellerUUID()),
+                            price
+                    );
+
+            if (!deposit.transactionSuccess()) {
+                cancelAuction(auction, "送金失敗");
+                return;
+            }
 
             if (seller != null) {
-                ItemUtil.giveItemOrStash(
-                        seller,
-                        auction.getItem()
-                );
+                seller.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&a売上として &6&l" +
+                                String.format("%,d", price) +
+                                "円&a受け取りました。"
+                ));
+            }
+
+        } else {
+
+            // 入札なし
+            if (seller != null) {
+                ItemUtil.giveItemOrStash(seller, auction.getItem());
 
                 seller.sendMessage(color(
                         ChatUtil.PREFIX +
@@ -262,37 +255,28 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             }
         }
 
-        Set<UUID> participants = new HashSet<>(
-                manager.getAllJoinedPlayers(auction.getAuctionId())
-        );
-
-
         // =========================
         // 後処理
         // =========================
-        for (UUID uuid : manager.getAllJoinedPlayers(auction.getAuctionId())) {
+        Set<UUID> participants =
+                new HashSet<>(manager.getAllJoinedPlayers(auction.getAuctionId()));
+
+        for (UUID uuid : participants) {
             manager.leaveAuction(uuid);
         }
 
-        manager.unregisterSeller(
-                auction.getSellerUUID()
-        );
-
+        manager.unregisterSeller(auction.getSellerUUID());
 
         KurosioAuctionSystem.getInstance()
                 .getHistoryManager()
                 .saveHistory(auction);
 
-        manager.removeAuction(
-                auction.getAuctionId()
-        );
-
+        manager.removeAuction(auction.getAuctionId());
         manager.notifyUpdate();
 
         // =========================
-        // 結果発表
+        // 結果通知
         // =========================
-
         String winnerName = (winner != null)
                 ? Bukkit.getOfflinePlayer(winner).getName()
                 : "なし";
@@ -300,106 +284,57 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         ItemStack item = auction.getItem();
         ItemMeta meta = item.getItemMeta();
 
-        String displayName = (meta != null && meta.hasDisplayName())
-                ? meta.getDisplayName()
-                : item.getType().name();
+        String displayName =
+                (meta != null && meta.hasDisplayName())
+                        ? meta.getDisplayName()
+                        : item.getType().name();
 
-        Set<UUID> receivers = new HashSet<>(
-                participants
-        );
-
-// 出品者は必ず含める
-        receivers.add(
-                auction.getSellerUUID()
-        );
-
-// 落札者も必ず含める
-        if (winner != null) {
-            receivers.add(winner);
-        }
+        Set<UUID> receivers = new HashSet<>(participants);
+        receivers.add(auction.getSellerUUID());
+        if (winner != null) receivers.add(winner);
 
         for (UUID uuid : receivers) {
 
             Player target = Bukkit.getPlayer(uuid);
-
             if (target == null) continue;
 
-            target.sendMessage(color(
-                    ChatUtil.PREFIX +
-                            "\n&e===== オークション結果 ====="
-            ));
-
-            target.sendMessage(color(
-                    "&eID&f: &f" +
-                            auction.getAuctionId()
-            ));
-
-            target.sendMessage(color(
-                    "&e落札者&f: &a" +
-                            winnerName
-            ));
-
-            target.sendMessage(color(
-                    "&e落札価格&f: &6&l" +
-                            String.format("%,d",
-                                    auction.getCurrentPrice()
-                            ) +
-                            "円"
-            ));
+            target.sendMessage(color(ChatUtil.PREFIX + "\n&e===== オークション結果 ====="));
+            target.sendMessage(color("&eID&f: &f" + auction.getAuctionId()));
+            target.sendMessage(color("&e落札者&f: &a" + winnerName));
+            target.sendMessage(color("&e落札価格&f: &6&l" + String.format("%,d", price) + "円"));
 
             TextComponent itemLine =
-                    new TextComponent(
-                            color(
-                                    "&eアイテム名&f: "
-                            )
-                    );
+                    new TextComponent(color("&eアイテム名&f: "));
 
             TextComponent itemName =
-                    new TextComponent(
-                            color(
-                                    "&f" + displayName
-                            )
-                    );
+                    new TextComponent(color("&f" + displayName));
 
-            itemName.setHoverEvent(
-                    new HoverEvent(
-                            HoverEvent.Action.SHOW_TEXT,
-                            new ComponentBuilder(
-                                    buildItemHover(item)
-                            ).create()
-                    )
-            );
+            itemName.setHoverEvent(new HoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    new ComponentBuilder(buildItemHover(item)).create()
+            ));
 
             itemLine.addExtra(itemName);
-
             target.spigot().sendMessage(itemLine);
 
-            int amount = item.getAmount();
-            if (amount > 1) {
-                target.sendMessage(color(
-                        "&e個数&f: &f" +
-                                amount
-                ));
+            if (item.getAmount() > 1) {
+                target.sendMessage(color("&e個数&f: &f" + item.getAmount()));
             }
-            target.sendMessage(color(
-                    "&e======================="
-            ));
+
+            target.sendMessage(color("&e======================="));
         }
 
-        if (winner != null && Bukkit.getPlayer(winner) != null) {
-            Bukkit.getPlayer(winner).sendMessage(color(
+        if (winnerPlayer != null) {
+            winnerPlayer.sendMessage(color(
                     ChatUtil.PREFIX +
                             "&aあなたが落札しました！ &6" +
-                            String.format("%,d", auction.getCurrentPrice()) +
+                            String.format("%,d", price) +
                             "円"
             ));
         }
 
         if (seller != null) {
-            seller.sendMessage(color(
-                    ChatUtil.PREFIX +
-                            "&aオークションが終了しました"
-            ));
+            seller.sendMessage(color(ChatUtil.PREFIX + "&aオークションが終了しました"));
         }
     }
 
