@@ -958,7 +958,7 @@ public class KACCommand implements CommandExecutor {
             ChatUtil.send(sender, "&e=======[&6&lコマンド一覧&e]=======");
             ChatUtil.send(sender, "&a/kac start <開始価格> [&cu:&a<入札単位>] [&cr:&a<半径>] [&cauto:&a<on/off>] [&cexp:&a<MCID>]");
             ChatUtil.send(sender, "&6&lオークションを開始");
-            ChatUtil.send(sender, "&f入札単位・半径は&3任意&f。任意の半径内にｵｰｸｼｮﾝ開始を通知させます。");
+            ChatUtil.send(sender, "&a[ &a]&fのｵﾌﾟｼｮﾝは&3任意&f。任意の半径内にｵｰｸｼｮﾝ開始を通知させます。");
             ChatUtil.send(sender, "&aauto:on&fにすると自動入札機能が使えるように設定されます。ﾃﾞﾌｫﾙﾄ:off");
             ChatUtil.send(sender, "&aexp:<MCID> &fを指定するとそのプレイヤーは参加・入札・自動入札できません。");
             ChatUtil.send(sender, "&a/kac join <ID>  &f-オークションへ参加");
