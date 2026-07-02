@@ -20,25 +20,38 @@ public class PlayerJoinListener implements Listener {
 
         Player player = event.getPlayer();
 
-        ReturnManager returnManager =
-                KurosioAuctionSystem.getInstance().getReturnManager();
+        Bukkit.getScheduler().runTaskLater(
+                KurosioAuctionSystem.getInstance(),
+                () -> {
 
-        List<ItemStack> items =
-                returnManager.getReturns(player.getUniqueId());
+                    // ログアウトしていたら中止
+                    if (!player.isOnline()) {
+                        return;
+                    }
 
-        if (items.isEmpty()) {
-            return;
-        }
+                    ReturnManager returnManager =
+                            KurosioAuctionSystem.getInstance().getReturnManager();
 
-        for (ItemStack item : items) {
-            ItemUtil.giveItemOrStash(player, item);
-        }
+                    List<ItemStack> items =
+                            returnManager.getReturns(player.getUniqueId());
 
-        returnManager.remove(player.getUniqueId());
+                    if (items.isEmpty()) {
+                        return;
+                    }
 
-        player.sendMessage(ChatUtil.color(
-                ChatUtil.PREFIX +
-                        "&a返却待ちだったアイテムを返却しました。"
-        ));
+                    for (ItemStack item : items) {
+                        ItemUtil.giveItemOrStash(player, item);
+                    }
+
+                    returnManager.remove(player.getUniqueId());
+
+                    player.sendMessage(ChatUtil.color(
+                            ChatUtil.PREFIX +
+                                    "&a返却待ちだったアイテムを返却しました。"
+                    ));
+
+                },
+                100L // 5秒待機
+        );
     }
 }
