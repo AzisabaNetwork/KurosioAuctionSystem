@@ -669,7 +669,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                             sb.append("\n");
                         }
 
-                        sb.append("§e──── 内容物 ────\n");
+                        sb.append("§e──── 内容物 ────&f\n");
 
                         foundItem = true;
                     }
