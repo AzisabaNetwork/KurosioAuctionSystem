@@ -16,44 +16,29 @@ import java.util.List;
 public class PlayerJoinListener implements Listener {
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
+    public void onJoin(PlayerJoinEvent event) {
 
-        Player player = e.getPlayer();
+        Player player = event.getPlayer();
 
-        Bukkit.getScheduler().runTaskLater(
-                KurosioAuctionSystem.getInstance(),
-                () -> {
+        ReturnManager returnManager =
+                KurosioAuctionSystem.getInstance().getReturnManager();
 
-                    ReturnManager manager =
-                            KurosioAuctionSystem.getInstance()
-                                    .getReturnManager();
+        List<ItemStack> items =
+                returnManager.getReturns(player.getUniqueId());
 
-                    List<ItemStack> items =
-                            manager.getReturns(
-                                    player.getUniqueId()
-                            );
+        if (items.isEmpty()) {
+            return;
+        }
 
-                    if (items.isEmpty()) {
-                        return;
-                    }
+        for (ItemStack item : items) {
+            ItemUtil.giveItemOrStash(player, item);
+        }
 
-                    for (ItemStack item : items) {
+        returnManager.remove(player.getUniqueId());
 
-                        ItemUtil.giveItemOrStash(
-                                player,
-                                item
-                        );
-                    }
-
-                    player.sendMessage(ChatUtil.color(
-                            ChatUtil.PREFIX +
-                                    "&a未受取の返却アイテムを受け取りました。"
-                    ));
-
-                    manager.remove(player.getUniqueId());
-
-                },
-                60L
-        );
+        player.sendMessage(ChatUtil.color(
+                ChatUtil.PREFIX +
+                        "&a返却待ちだったアイテムを返却しました。"
+        ));
     }
 }

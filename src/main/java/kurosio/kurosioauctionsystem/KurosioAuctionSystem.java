@@ -266,12 +266,15 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         } else {
 
             // 入札なし
-            if (seller != null) {
-                ItemUtil.giveItemOrStash(seller, auction.getItem());
+            returnManager.addReturn(
+                    auction.getSellerUUID(),
+                    auction.getItem()
+            );
 
+            if (seller != null) {
                 seller.sendMessage(color(
                         ChatUtil.PREFIX +
-                                "&e入札者がいなかったためアイテムを返却しました。"
+                                "&e入札者がいなかったため返却待ちにしました。再接続時に返却されます。"
                 ));
             }
         }
@@ -389,33 +392,25 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         auction.setActive(false);
 
-        // 出品者へ返却
+
+        // 出品アイテムを返却待ちへ保存
+        returnManager.addReturn(
+                auction.getSellerUUID(),
+                auction.getItem()
+        );
 
         Player seller =
                 Bukkit.getPlayer(auction.getSellerUUID());
 
         if (seller != null) {
 
-            // ✔ ItemStash → inv → drop
-            ItemUtil.giveItemOrStash(
-                    seller,
-                    auction.getItem()
-            );
-
             seller.sendMessage(color(
                     ChatUtil.PREFIX +
-                            "&e出品アイテムを返却しました。"
+                            "&e出品アイテムを返却待ちにしました。再接続時に返却されます。"
             ));
-
-        } else {
-
-            // オフライン保管
-            returnManager.addReturn(
-                    auction.getSellerUUID(),
-                    auction.getItem()
-            );
         }
-        // 履歴保存
+
+// 履歴保存
         historyManager.saveHistory(auction);
 
         // 後処理
@@ -723,18 +718,12 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         Player seller = Bukkit.getPlayer(sellerUUID);
 
         // =========================
-        // アイテム返却処理
-        // =========================
-        if (seller != null) {
-
-            // インベントリ → ItemStash → ドロップ
-            ItemUtil.giveItemOrStash(seller, item);
-
-        } else {
-
-            // オフライン → returns.ymlへ保存
-            returnManager.addReturn(sellerUUID, item);
-        }
+// returns.ymlへ保存
+// =========================
+        returnManager.addReturn(
+                sellerUUID,
+                item
+        );
 
         // =========================
         // 後処理

@@ -47,7 +47,7 @@ public class ReturnManager {
     }
 
     public List<ItemStack> getReturns(UUID uuid) {
-        return pendingReturns.computeIfAbsent(uuid, k -> new ArrayList<ItemStack>());
+        return pendingReturns.getOrDefault(uuid, new ArrayList<>());
     }
 
     public void remove(UUID uuid) {
