@@ -24,7 +24,7 @@ public class PlayerJoinListener implements Listener {
                 KurosioAuctionSystem.getInstance(),
                 () -> {
 
-                    // 待機中に退出していたら何もしない
+                    // 待機中に退出した場合何もしない
                     if (!player.isOnline()) {
                         return;
                     }

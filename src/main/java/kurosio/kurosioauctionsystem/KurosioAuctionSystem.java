@@ -393,21 +393,28 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         auction.setActive(false);
 
 
-        // 出品アイテムを返却待ちへ保存
-        returnManager.addReturn(
-                auction.getSellerUUID(),
-                auction.getItem()
-        );
-
         Player seller =
                 Bukkit.getPlayer(auction.getSellerUUID());
 
         if (seller != null) {
 
+            ItemUtil.giveItemOrStash(
+                    seller,
+                    auction.getItem()
+            );
+
             seller.sendMessage(color(
                     ChatUtil.PREFIX +
-                            "&e出品アイテムを返却待ちにしました。再接続時に返却されます。"
+                            "&a出品アイテムを返却しました。"
             ));
+
+        } else {
+
+            // オフラインなら返却待ち
+            returnManager.addReturn(
+                    auction.getSellerUUID(),
+                    auction.getItem()
+            );
         }
 
 // 履歴保存
