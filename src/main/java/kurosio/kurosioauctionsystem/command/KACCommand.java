@@ -964,7 +964,7 @@ public class KACCommand implements CommandExecutor {
             ChatUtil.send(sender, "&a/kac join <ID>  &f-オークションへ参加");
             ChatUtil.send(sender, "開始通知の&3&lメッセージクリック&fでも参加できます。");
             ChatUtil.send(sender, "&a/kac leave      &f-オークションから退出");
-            ChatUtil.send(sender, "&f※最高入札者の場合退出しても落札者となります。");
+            ChatUtil.send(sender, "&f※最高入札者の場合退出できません。");
             ChatUtil.send(sender, "&a/kac bid        &f-入札単位分入札します。");
             ChatUtil.send(sender, "&a/kac bid [金額]  &f-入札します。");
             ChatUtil.send(sender, "&f※金額の誤入力に注意");
