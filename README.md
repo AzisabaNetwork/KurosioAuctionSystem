@@ -70,7 +70,7 @@ https://help.kankocho.jp/knowledge/help023
 - Vault対応経済プラグイン
 ### インストール
 
-1. VaultとVault対応の経済プラグインを導入
+1. VaultまたはVault対応の経済プラグインを導入
 2. ItemStashを導入 (任意: アイテムロスト防止)
 3. KurosioAuctionSystem-x.x.x.jar を plugins フォルダへ配置
 4. サーバーを再起動

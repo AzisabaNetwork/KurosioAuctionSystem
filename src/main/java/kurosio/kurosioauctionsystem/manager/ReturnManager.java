@@ -76,9 +76,7 @@ public class ReturnManager {
 
         if (returnConfig.getConfigurationSection("returns") == null) return;
 
-        Set<String> keys = returnConfig.getConfigurationSection("returns").getKeys(false);
-
-        for (String uuidString : keys) {
+        for (String uuidString : returnConfig.getConfigurationSection("returns").getKeys(false)) {
 
             UUID uuid;
 
@@ -88,20 +86,12 @@ public class ReturnManager {
                 continue;
             }
 
-            List<?> rawList = returnConfig.getList("returns." + uuidString);
-            if (rawList == null) continue;
+            List<ItemStack> items =
+                    (List<ItemStack>) returnConfig.getList("returns." + uuidString);
 
-            List<ItemStack> items = new ArrayList<ItemStack>();
+            if (items == null) continue;
 
-            for (Object obj : rawList) {
-                if (obj instanceof ItemStack) {
-                    items.add((ItemStack) obj);
-                }
-            }
-
-            if (!items.isEmpty()) {
-                pendingReturns.put(uuid, items);
-            }
+            pendingReturns.put(uuid, new ArrayList<>(items));
         }
     }
 }

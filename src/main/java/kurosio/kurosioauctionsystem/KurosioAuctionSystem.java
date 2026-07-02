@@ -75,6 +75,8 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         setupDataFile();
         loadAuctions();
 
+        recoverInterruptedAuctions();
+
         getCommand("kac").setExecutor(new KACCommand());
         getCommand("kac").setTabCompleter(new KACTabCompleter());
 
@@ -86,6 +88,14 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             for (AuctionData auction : auctionManager.getAuctions()) {
 
                 if (!auction.isActive()) continue;
+
+
+                Player seller = Bukkit.getPlayer(auction.getSellerUUID());
+
+                if (seller == null) {
+                    cancelAuction(auction, "出品者がオフラインのため中止されました");
+                    continue;
+                }
 
                 long elapsed =
                         System.currentTimeMillis()
@@ -147,6 +157,16 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         return returnManager;
     }
 
+    private boolean finishing = false;
+
+    public boolean isFinishing() {
+        return finishing;
+    }
+
+    public void setFinishing(boolean finishing) {
+        this.finishing = finishing;
+    }
+
     // =========================
     //  終了処理
     // =========================
@@ -155,6 +175,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         if (!auction.isActive()) return;
 
+        auction.setFinishing(true);
         auction.setActive(false);
         auction.setEndTime(System.currentTimeMillis());
 
@@ -369,13 +390,13 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         auction.setActive(false);
 
         // 出品者へ返却
+
         Player seller =
-                Bukkit.getPlayer(
-                        auction.getSellerUUID()
-                );
+                Bukkit.getPlayer(auction.getSellerUUID());
 
         if (seller != null) {
 
+            // ✔ ItemStash → inv → drop
             ItemUtil.giveItemOrStash(
                     seller,
                     auction.getItem()
@@ -388,6 +409,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         } else {
 
+            // オフライン保管
             returnManager.addReturn(
                     auction.getSellerUUID(),
                     auction.getItem()
@@ -676,6 +698,51 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
 
         return sb.toString().trim();
+    }
+
+    private void recoverInterruptedAuctions() {
+
+        List<AuctionData> copy = new ArrayList<>(auctionManager.getAuctions());
+
+        for (AuctionData auction : copy) {
+
+            if (!auction.isActive()) continue;
+
+            getLogger().warning("クラッシュ復旧対象: " + auction.getAuctionId());
+
+            // ここでは状態いじらない（重要）
+            forceCancelAfterCrash(auction);
+        }
+    }
+
+    private void forceCancelAfterCrash(AuctionData auction) {
+
+        UUID sellerUUID = auction.getSellerUUID();
+        ItemStack item = auction.getItem();
+
+        Player seller = Bukkit.getPlayer(sellerUUID);
+
+        // =========================
+        // アイテム返却処理
+        // =========================
+        if (seller != null) {
+
+            // インベントリ → ItemStash → ドロップ
+            ItemUtil.giveItemOrStash(seller, item);
+
+        } else {
+
+            // オフライン → returns.ymlへ保存
+            returnManager.addReturn(sellerUUID, item);
+        }
+
+        // =========================
+        // 後処理
+        // =========================
+        historyManager.saveHistory(auction);
+
+        auctionManager.cleanupAuction(auction.getAuctionId());
+        auctionManager.notifyUpdate();
     }
 
 }

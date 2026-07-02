@@ -114,4 +114,14 @@ public class AuctionData {
         this.highestBidder = bidder;
         this.currentPrice = currentPrice;
     }
+
+    private boolean finishing = false;
+
+    public boolean isFinishing() {
+        return finishing;
+    }
+
+    public void setFinishing(boolean finishing) {
+        this.finishing = finishing;
+    }
 }
