@@ -1,1 +1,5 @@
 last-auction-id: 0
+
+return:
+  join-delay: 100    # Tick（100=5秒）
+  mode: STASH_ONLY   # STASH_ONLY / AUTO

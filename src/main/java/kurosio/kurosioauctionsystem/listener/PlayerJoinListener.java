@@ -24,7 +24,7 @@ public class PlayerJoinListener implements Listener {
                 KurosioAuctionSystem.getInstance(),
                 () -> {
 
-                    // ログアウトしていたら中止
+                    // 待機中に退出していたら何もしない
                     if (!player.isOnline()) {
                         return;
                     }
@@ -39,8 +39,18 @@ public class PlayerJoinListener implements Listener {
                         return;
                     }
 
+                    boolean success = true;
+
                     for (ItemStack item : items) {
-                        ItemUtil.giveItemOrStash(player, item);
+
+                        if (!ItemUtil.giveItemOrStash(player, item)) {
+                            success = false;
+                            break;
+                        }
+                    }
+
+                    if (!success) {
+                        return;
                     }
 
                     returnManager.remove(player.getUniqueId());
@@ -51,7 +61,9 @@ public class PlayerJoinListener implements Listener {
                     ));
 
                 },
-                100L // 5秒待機
+                KurosioAuctionSystem.getInstance()
+                        .getConfig()
+                        .getLong("return.join-delay")
         );
     }
 }
