@@ -136,4 +136,76 @@ public class ItemUtil {
 
         return true;
     }
+
+    public static boolean giveReturnItem(Player player, ItemStack item) {
+
+        boolean hasItemStash =
+                Bukkit.getPluginManager().isPluginEnabled("ItemStash");
+
+        // =========================
+        // ItemStash優先
+        // =========================
+        if (hasItemStash) {
+
+            try {
+
+                Class<?> clazz =
+                        Class.forName("net.azisaba.itemstash.ItemStash");
+
+                Object instance =
+                        clazz.getMethod("getInstance")
+                                .invoke(null);
+
+                clazz.getMethod(
+                                "addItemToStash",
+                                java.util.UUID.class,
+                                ItemStack.class
+                        )
+                        .invoke(
+                                instance,
+                                player.getUniqueId(),
+                                item
+                        );
+
+                player.sendMessage(
+                        ChatUtil.color(
+                                ChatUtil.PREFIX +
+                                        "&a返却待ちアイテムをItemStashへ返却しました。"
+                        )
+                );
+
+                return true;
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        // =========================
+        // ItemStashが無い場合はインベントリ
+        // =========================
+
+        Map<Integer, ItemStack> leftOver =
+                player.getInventory().addItem(item);
+
+        if (leftOver.isEmpty()) {
+            return true;
+        }
+
+        for (ItemStack left : leftOver.values()) {
+
+            player.getWorld().dropItemNaturally(
+                    player.getLocation(),
+                    left
+            );
+        }
+
+        player.sendMessage(
+                ChatUtil.color(
+                        ChatUtil.PREFIX +
+                                "&cインベントリがいっぱいのため、足元へドロップしました。"
+                )
+        );
+
+        return true;
+    }
 }

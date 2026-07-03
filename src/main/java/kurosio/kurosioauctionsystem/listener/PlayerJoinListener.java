@@ -43,7 +43,7 @@ public class PlayerJoinListener implements Listener {
 
                     for (ItemStack item : items) {
 
-                        if (!ItemUtil.giveItemOrStash(player, item)) {
+                        if (!ItemUtil.giveReturnItem(player, item)) {
                             success = false;
                             break;
                         }

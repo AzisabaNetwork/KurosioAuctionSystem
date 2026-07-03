@@ -434,7 +434,15 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         Player seller =
                 Bukkit.getPlayer(auction.getSellerUUID());
 
-        if (seller != null) {
+// ログアウト・サーバー移動時は必ず返却待ちにする
+        if ("出品者がログアウトしたため".equals(reason)) {
+
+            returnManager.addReturn(
+                    auction.getSellerUUID(),
+                    auction.getItem()
+            );
+
+        } else if (seller != null) {
 
             HashMap<Integer, ItemStack> remain =
                     seller.getInventory().addItem(auction.getItem());
@@ -461,7 +469,6 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         } else {
 
-            // オフラインなら返却待ち
             returnManager.addReturn(
                     auction.getSellerUUID(),
                     auction.getItem()
