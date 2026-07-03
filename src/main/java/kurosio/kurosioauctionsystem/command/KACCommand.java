@@ -485,6 +485,14 @@ public class KACCommand implements CommandExecutor {
                     return true;
                 }
 
+                if (newPrice <= 0) {
+                    player.sendMessage(color(
+                            ChatUtil.PREFIX +
+                                    "&c入札額は1円以上を指定してください。"
+                    ));
+                    return true;
+                }
+
             } else {
 
                 // /kac bid
