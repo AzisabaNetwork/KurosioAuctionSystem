@@ -194,7 +194,24 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         );
 
         UUID winner = ranking.isEmpty() ? null : ranking.get(0).getKey();
-        long price = ranking.isEmpty() ? 0 : ranking.get(0).getValue();
+
+        long price;
+
+        if (ranking.isEmpty()) {
+
+            price = 0;
+
+        } else if (ranking.size() == 1) {
+
+            // 入札者1人だけなら開始価格
+            price = auction.getStartPrice();
+
+        } else {
+
+            // 2人以上なら最高入札額
+            price = ranking.get(0).getValue();
+
+        }
 
         // =========================
         // チェック
@@ -238,7 +255,28 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             // =========================
             // アイテム付与
             // =========================
-            ItemUtil.giveItemOrStash(winnerPlayer, auction.getItem());
+            HashMap<Integer, ItemStack> remain =
+                    winnerPlayer.getInventory().addItem(auction.getItem());
+
+            if (remain.isEmpty()) {
+
+                winnerPlayer.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&a落札したアイテムを受け取りました。"
+                ));
+
+            } else {
+
+                ItemUtil.giveItemOrStash(
+                        winnerPlayer,
+                        remain.values().iterator().next()
+                );
+
+                winnerPlayer.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&eインベントリが満杯のためItemStashへ送りました。"
+                ));
+            }
 
             // =========================
             // 出品者へ送金
@@ -398,15 +436,28 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
         if (seller != null) {
 
-            ItemUtil.giveItemOrStash(
-                    seller,
-                    auction.getItem()
-            );
+            HashMap<Integer, ItemStack> remain =
+                    seller.getInventory().addItem(auction.getItem());
 
-            seller.sendMessage(color(
-                    ChatUtil.PREFIX +
-                            "&a出品アイテムを返却しました。"
-            ));
+            if (remain.isEmpty()) {
+
+                seller.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&a出品アイテムをインベントリへ返却しました。"
+                ));
+
+            } else {
+
+                ItemUtil.giveItemOrStash(
+                        seller,
+                        remain.values().iterator().next()
+                );
+
+                seller.sendMessage(color(
+                        ChatUtil.PREFIX +
+                                "&eインベントリが満杯のため、出品アイテムをItemStashへ返却しました。"
+                ));
+            }
 
         } else {
 
