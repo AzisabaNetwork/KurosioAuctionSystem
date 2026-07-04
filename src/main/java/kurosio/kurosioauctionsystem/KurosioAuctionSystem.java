@@ -26,6 +26,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static kurosio.kurosioauctionsystem.util.ChatUtil.color;
 
@@ -186,32 +187,11 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         // =========================
         // ランキング
         // =========================
-        List<Map.Entry<UUID, Long>> ranking =
-                new ArrayList<>(auction.getHighestOffers().entrySet());
+        UUID winner = auction.getHighestBidder();
 
-        ranking.sort((a, b) ->
-                Long.compare(b.getValue(), a.getValue())
-        );
-
-        UUID winner = ranking.isEmpty() ? null : ranking.get(0).getKey();
-
-        long price;
-
-        if (ranking.isEmpty()) {
-
-            price = 0;
-
-        } else if (ranking.size() == 1) {
-
-            // 入札者1人だけなら開始価格
-            price = auction.getStartPrice();
-
-        } else {
-
-            // 2人以上なら最高入札額
-            price = ranking.get(0).getValue();
-
-        }
+        long price = (winner == null)
+                ? 0
+                : auction.getCurrentPrice();
 
         // =========================
         // チェック
@@ -304,16 +284,37 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         } else {
 
             // 入札なし
-            returnManager.addReturn(
-                    auction.getSellerUUID(),
-                    auction.getItem()
-            );
-
             if (seller != null) {
-                seller.sendMessage(color(
-                        ChatUtil.PREFIX +
-                                "&e入札者がいなかったため返却待ちにしました。再接続時に返却されます。"
-                ));
+
+                HashMap<Integer, ItemStack> remain =
+                        seller.getInventory().addItem(auction.getItem());
+
+                if (remain.isEmpty()) {
+
+                    seller.sendMessage(color(
+                            ChatUtil.PREFIX +
+                                    "&a入札者がいなかったため、出品アイテムを返却しました。"
+                    ));
+
+                } else {
+
+                    ItemUtil.giveItemOrStash(
+                            seller,
+                            remain.values().iterator().next()
+                    );
+
+                    seller.sendMessage(color(
+                            ChatUtil.PREFIX +
+                                    "&eインベントリが満杯のため、出品アイテムをItemStashへ返却しました。"
+                    ));
+                }
+
+            } else {
+
+                returnManager.addReturn(
+                        auction.getSellerUUID(),
+                        auction.getItem()
+                );
             }
         }
 
@@ -530,6 +531,14 @@ public final class KurosioAuctionSystem extends JavaPlugin {
             );
             UUID bidder = auction.getHighestBidder();
 
+            dataConfig.set(
+                    path + ".auto-bidders",
+                    auction.getAutoBidders()
+                            .stream()
+                            .map(UUID::toString)
+                            .collect(Collectors.toList())
+            );
+
             if (bidder != null) {
 
                 dataConfig.set(
@@ -638,6 +647,10 @@ public final class KurosioAuctionSystem extends JavaPlugin {
                     dataConfig.getLong(path + ".start-price"),
                     dataConfig.getLong(path + ".bid-unit")
             );
+
+            for (String uuid : dataConfig.getStringList(path + ".auto-bidders")) {
+                auction.setAutoBidder(UUID.fromString(uuid), true);
+            }
 
             auction.setCurrentPrice(
                     dataConfig.getLong(path + ".current-price")

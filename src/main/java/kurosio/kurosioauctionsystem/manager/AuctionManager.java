@@ -253,6 +253,7 @@ public class AuctionManager {
         if (ranking.isEmpty()) {
             auction.setHighestBidder(null);
             auction.setCurrentPrice(auction.getStartPrice());
+            auction.setLastAutoBid(false);
             return;
         }
 
@@ -263,12 +264,29 @@ public class AuctionManager {
                 ? ranking.get(1).getValue()
                 : 0;
 
-        long currentPrice = Math.max(
-                auction.getStartPrice(),
-                Math.min(firstVal, secondVal + auction.getBidUnit())
+        long currentPrice;
+
+        if (auction.isAutoBidder(firstId)) {
+
+            currentPrice = Math.max(
+                    auction.getStartPrice(),
+                    Math.min(firstVal, secondVal + auction.getBidUnit())
+            );
+
+        } else {
+
+            currentPrice = firstVal;
+        }
+
+        auction.setLastAutoBid(
+                auction.isAutoBidder(firstId)
         );
 
-        auction.updateWinner(firstId, firstVal, currentPrice);
+        auction.updateWinner(
+                firstId,
+                firstVal,
+                currentPrice
+        );
 
         notifyUpdate();
     }

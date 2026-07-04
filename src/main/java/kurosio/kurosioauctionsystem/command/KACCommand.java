@@ -427,7 +427,6 @@ public class KACCommand implements CommandExecutor {
 
 
             AuctionData auction = manager.getAuction(auctionId);
-            manager.recalculateWinner(auction);
 
             if (auction == null || !auction.isActive()) {
                 player.sendMessage("オークションが存在しません");
@@ -595,10 +594,12 @@ public class KACCommand implements CommandExecutor {
                         newPrice
                 );
 
+// 手動入札として登録
+                auction.setAutoBidder(player.getUniqueId(), false);
 
+// 現在価格・最高入札者を再計算
                 manager.recalculateWinner(auction);
 
-                auction.setLastAutoBid(false);
                 auction.setLastBidTime(System.currentTimeMillis());
 
                 KurosioAuctionSystem.getInstance().saveAuctions();
@@ -664,16 +665,6 @@ public class KACCommand implements CommandExecutor {
                 return true;
             }
 
-            if (auction.getExcludedPlayer() != null
-                    && auction.getExcludedPlayer().equals(player.getUniqueId())) {
-
-                player.sendMessage(color(
-                        ChatUtil.PREFIX +
-                                "&cこのオークションには参加できません。"
-                ));
-
-                return true;
-            }
 
             if (!auction.isActive()) {
                 player.sendMessage("このオークションは終了しています");
@@ -1012,7 +1003,11 @@ public class KACCommand implements CommandExecutor {
             if (winnerAuto != null) {
                 limits.put(currentWinner, winnerAuto);
             } else {
-                limits.put(currentWinner, auction.getCurrentPrice());
+                Long offer = auction.getHighestOffers().get(currentWinner);
+
+                if (offer != null) {
+                    limits.put(currentWinner, offer);
+                }
             }
         }
 
@@ -1134,26 +1129,36 @@ public class KACCommand implements CommandExecutor {
         long beforePrice = auction.getCurrentPrice();
         UUID beforeWinner = auction.getHighestBidder();
 
+        // =========================
 // 上限だけ更新
+// =========================
+        UUID top = sorted.get(0).getKey();
+
         auction.getHighestOffers().put(
-                sorted.get(0).getKey(),
+                top,
                 sorted.get(0).getValue()
+        );
+
+// 自動入札者かどうかを反映
+        auction.setAutoBidder(
+                top,
+                manager.getAutoBids().containsKey(top)
         );
 
 // ランキングから現在価格・勝者を再計算
         manager.recalculateWinner(auction);
+
 
         if (beforePrice == auction.getCurrentPrice()
                 && Objects.equals(beforeWinner, auction.getHighestBidder())) {
             return false;
         }
 
-        auction.setLastAutoBid(true);
         auction.setLastBidTime(System.currentTimeMillis());
 
         KurosioAuctionSystem.getInstance().saveAuctions();
 
-        boolean autoTriggered = true;
+        boolean autoTriggered = auction.isLastAutoBid();
         UUID topUser = auction.getHighestBidder();
 
         // =========================

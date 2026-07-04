@@ -23,6 +23,24 @@ public class AuctionData {
     private boolean active = true;
     private boolean autoBidEnabled = false;
     private boolean lastAutoBid = false;
+    // 自動入札設定者
+    private final Set<UUID> autoBidders = new HashSet<>();
+    public void setAutoBidder(UUID uuid, boolean auto) {
+
+        if (auto) {
+            autoBidders.add(uuid);
+        } else {
+            autoBidders.remove(uuid);
+        }
+    }
+
+    public boolean isAutoBidder(UUID uuid) {
+        return autoBidders.contains(uuid);
+    }
+
+    public Set<UUID> getAutoBidders() {
+        return autoBidders;
+    }
 
     private UUID highestBidder;
     private UUID excludedPlayer;
@@ -92,6 +110,7 @@ public class AuctionData {
 
     public void removeBidder(UUID uuid) {
         highestOffers.remove(uuid);
+        autoBidders.remove(uuid);
     }
 
     public List<Map.Entry<UUID, Long>> getRanking() {
