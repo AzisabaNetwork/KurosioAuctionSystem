@@ -11,7 +11,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class ChatUtil {
@@ -79,18 +82,6 @@ public class ChatUtil {
             }
         }
 
-        // エンチャント表示
-        if (meta != null && !meta.getEnchants().isEmpty()) {
-
-            for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) {
-
-                sb.append(color("&9"))
-                        .append(getEnchantName(entry.getKey()))
-                        .append(" ")
-                        .append(toRoman(entry.getValue()))
-                        .append("\n");
-            }
-        }
 
         // シュルカー中身表示
         if (meta instanceof BlockStateMeta) {
@@ -197,6 +188,7 @@ public class ChatUtil {
     }
 
     public static String toRoman(int level) {
+
         switch (level) {
             case 1: return "I";
             case 2: return "II";
