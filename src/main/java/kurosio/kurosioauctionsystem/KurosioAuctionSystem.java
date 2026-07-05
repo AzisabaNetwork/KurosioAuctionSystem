@@ -374,7 +374,7 @@ public final class KurosioAuctionSystem extends JavaPlugin {
 
             itemName.setHoverEvent(new HoverEvent(
                     HoverEvent.Action.SHOW_TEXT,
-                    new ComponentBuilder(buildItemHover(item)).create()
+                    new ComponentBuilder(ChatUtil.buildItemHover(item)).create()
             ));
 
             itemLine.addExtra(itemName);
@@ -691,87 +691,6 @@ public final class KurosioAuctionSystem extends JavaPlugin {
         }
     }
 
-    public static String buildItemHover(
-            ItemStack item
-    ) {
-
-        StringBuilder sb =
-                new StringBuilder();
-
-        ItemMeta meta =
-                item.getItemMeta();
-
-        // Lore表示
-        if (meta != null && meta.hasLore()) {
-
-            for (String line : meta.getLore()) {
-
-                sb.append(
-                        color(line)
-                ).append("\n");
-            }
-        }
-
-        // シュルカー中身表示
-        if (meta instanceof BlockStateMeta) {
-
-            BlockStateMeta blockMeta =
-                    (BlockStateMeta) meta;
-
-            if (blockMeta.getBlockState() instanceof ShulkerBox) {
-
-                ShulkerBox shulker =
-                        (ShulkerBox) blockMeta.getBlockState();
-
-                Inventory inv =
-                        shulker.getInventory();
-
-                boolean foundItem = false;
-
-                for (ItemStack content : inv.getContents()) {
-
-                    if (content == null) {
-                        continue;
-                    }
-
-                    if (!foundItem) {
-
-                        if (sb.length() > 0) {
-                            sb.append("\n");
-                        }
-
-                        sb.append("§e──── 内容物 ────&f\n");
-
-                        foundItem = true;
-                    }
-
-                    ItemMeta contentMeta =
-                            content.getItemMeta();
-
-                    String name;
-
-                    if (contentMeta != null
-                            && contentMeta.hasDisplayName()) {
-
-                        name = color(
-                                contentMeta.getDisplayName()
-                        );
-
-                    } else {
-
-                        name = content.getType().name();
-                    }
-
-                    sb.append(name)
-                            .append(" §7×")
-                            .append(content.getAmount())
-                            .append("\n");
-                }
-            }
-        }
-
-        return sb.toString().trim();
-    }
 
     private void recoverInterruptedAuctions() {
 

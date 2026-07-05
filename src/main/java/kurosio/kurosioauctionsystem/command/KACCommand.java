@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import kurosio.kurosioauctionsystem.util.ChatUtil;
@@ -269,7 +270,7 @@ public class KACCommand implements CommandExecutor {
                         new HoverEvent(
                                 HoverEvent.Action.SHOW_TEXT,
                                 new ComponentBuilder(
-                                        buildItemHover(item)
+                                        ChatUtil.buildItemHover(item)
                                 ).create()
                         )
                 );
@@ -362,7 +363,14 @@ public class KACCommand implements CommandExecutor {
             ChatUtil.send(player, ChatUtil.PREFIX);
             ChatUtil.send(player, "&eID: &f" + auction.getAuctionId());
             ChatUtil.send(player, "&e開始価格: &6&l" + String.format("%,d", auction.getStartPrice()) + "円");
-            ChatUtil.send(player, "&e現在価格: &6&l" + String.format("%,d", auction.getCurrentPrice()) + "円");
+            if (auction.getHighestOffers().isEmpty()) {
+                ChatUtil.send(player, "&e現在価格: &7入札なし");
+            } else {
+                ChatUtil.send(player,
+                        "&e現在価格: &6&l"
+                                + String.format("%,d", auction.getCurrentPrice())
+                                + "円");
+            }
             ItemStack item = auction.getItem();
             ItemMeta meta = item.getItemMeta();
 
@@ -683,11 +691,17 @@ public class KACCommand implements CommandExecutor {
                     ChatUtil.PREFIX + "&aオークションに参加しました！ &7ID:&f" + auctionId
             ));
 
-            player.sendMessage(color(
-                    "&e現在の入札額&f: &6" +
-                            String.format("%,d", auction.getCurrentPrice()) +
-                            "円"
-            ));
+            if (auction.getHighestOffers().isEmpty()) {
+                player.sendMessage(color(
+                        "&e現在の入札額&f: &7入札なし"
+                ));
+            } else {
+                player.sendMessage(color(
+                        "&e現在の入札額&f: &6" +
+                                String.format("%,d", auction.getCurrentPrice()) +
+                                "円"
+                ));
+            }
 
             return true;
         }
@@ -1230,85 +1244,4 @@ public class KACCommand implements CommandExecutor {
         }
     }
 
-    public static String buildItemHover(
-            ItemStack item
-    ) {
-
-        StringBuilder sb =
-                new StringBuilder();
-
-        ItemMeta meta =
-                item.getItemMeta();
-
-        // Lore表示
-        if (meta != null && meta.hasLore()) {
-
-            for (String line : meta.getLore()) {
-
-                sb.append(
-                        color(line)
-                ).append("\n");
-            }
-        }
-
-        // シュルカー中身表示
-        if (meta instanceof BlockStateMeta) {
-
-            BlockStateMeta blockMeta =
-                    (BlockStateMeta) meta;
-
-            if (blockMeta.getBlockState() instanceof ShulkerBox) {
-
-                ShulkerBox shulker =
-                        (ShulkerBox) blockMeta.getBlockState();
-
-                Inventory inv =
-                        shulker.getInventory();
-
-                boolean foundItem = false;
-
-                for (ItemStack content : inv.getContents()) {
-
-                    if (content == null) {
-                        continue;
-                    }
-
-                    if (!foundItem) {
-
-                        if (sb.length() > 0) {
-                            sb.append("\n");
-                        }
-
-                        sb.append("§e──── 内容物 ────\n");
-
-                        foundItem = true;
-                    }
-
-                    ItemMeta contentMeta =
-                            content.getItemMeta();
-
-                    String name;
-
-                    if (contentMeta != null
-                            && contentMeta.hasDisplayName()) {
-
-                        name = color(
-                                contentMeta.getDisplayName()
-                        );
-
-                    } else {
-
-                        name = content.getType().name();
-                    }
-
-                    sb.append(name)
-                            .append(" §7×")
-                            .append(content.getAmount())
-                            .append("\n");
-                }
-            }
-        }
-
-        return sb.toString().trim();
-    }
 }

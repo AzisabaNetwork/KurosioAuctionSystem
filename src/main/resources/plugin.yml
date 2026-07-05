@@ -1,5 +1,5 @@
 name: KurosioAuctionSystem
-version: '2.6.1'
+version: '2.6.4'
 main: kurosio.kurosioauctionsystem.KurosioAuctionSystem
 api-version: '1.15'
 depend:
